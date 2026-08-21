@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Harmonic Analysis · melody + chords</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400&family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=Fragment+Mono:ital@0;1&display=swap" rel="stylesheet">
+<style>
+/* An analysis worksheet — warm paper, ink, red pencil. Flat, hand-set, restrained. */
+:root{
+  --paper:#16130d; --paper2:#1e1a12; --inset:#1c180f; --rule:#37311f; --rule2:#4b4229;
+  --ink:#ece5d3; --muted:#a89b80; --faint:#786f58;
+  --tonic:#5aa89c; --subdom:#c99a4a; --dominant:#d15c46; --chrom:#a882b6; --tension:#d15c46;
+  --mono:'Fragment Mono',ui-monospace,'SFMono-Regular',monospace;
+  --disp:'Fraunces','Hoefler Text',Georgia,serif; --body:'Spectral','Iowan Old Style',Georgia,serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--body);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+body{min-height:100vh}
+.wrap{max-width:1060px;margin:0 auto;padding:34px 26px 90px}
+header{border-bottom:2px solid var(--ink);padding-bottom:14px;margin-bottom:10px}
+.masthead{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;flex-wrap:wrap}
+h1{font-family:var(--disp);font-weight:600;font-size:41px;margin:0;line-height:.98;letter-spacing:-.01em;font-optical-sizing:auto}
+h1 em{font-style:italic;font-weight:400}
+.kicker{font-family:var(--mono);font-size:10.5px;color:var(--muted);letter-spacing:.02em;text-align:right;line-height:1.5}
+.sub{color:var(--muted);font-size:15px;margin:14px 0 26px;max-width:640px;line-height:1.6}
+.sub b{color:var(--ink);font-weight:600}
+h2{font-family:var(--disp);font-weight:500;font-size:20px;margin:0 0 4px;color:var(--ink);letter-spacing:-.01em}
+h2 .n{font-family:var(--disp);font-style:italic;font-weight:400;color:var(--dominant);margin-right:10px;font-size:19px}
+h2 .qual{font-family:var(--body);font-style:italic;font-weight:400;font-size:14px;color:var(--faint)}
+.panel{background:transparent;border-top:1px solid var(--rule);padding:22px 0 6px;margin-bottom:8px}
+.panel:first-of-type{border-top:none}
+.row{display:flex;gap:26px;flex-wrap:wrap}
+.col{flex:1;min-width:280px}
+.muted{color:var(--muted)}.dim{color:var(--faint)}.mono{font-family:var(--mono)}
+.note{font-size:13px;color:var(--muted);line-height:1.6;max-width:680px}
+.hidden{display:none!important}
+button{font-family:var(--mono);font-size:12.5px;cursor:pointer;border:1px solid var(--ink);background:var(--paper);color:var(--ink);padding:9px 18px;border-radius:2px;transition:.12s}
+button:hover{background:var(--ink);color:var(--paper)}
+button:disabled{opacity:.35;cursor:not-allowed}
+button.primary{background:var(--dominant);border-color:var(--dominant);color:var(--paper)}
+button.primary:hover{background:#8f271c;border-color:#8f271c}
+.drops{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media(max-width:640px){.drops{grid-template-columns:1fr}}
+.drop{border:1px solid var(--rule2);border-radius:2px;padding:22px 20px;transition:.14s;cursor:pointer;background:var(--inset)}
+.drop:hover,.drop.over{border-color:var(--ink)}
+.drop .big{font-family:var(--disp);font-weight:500;font-size:18px}
+.drop .lbl{font-family:var(--mono);font-size:10px;letter-spacing:.06em;margin-bottom:9px;color:var(--muted)}
+.drop.mel .lbl{color:var(--tonic)} .drop.chd .lbl{color:var(--subdom)}
+.drop .st{font-family:var(--mono);font-size:11px;color:var(--faint);margin-top:9px;line-height:1.5}
+.drop.loaded{background:var(--paper2)}
+.drop.mel.loaded{border-color:var(--tonic)} .drop.chd.loaded{border-color:var(--subdom)}
+canvas{display:block;width:100%;border:1px solid var(--rule);border-radius:2px;background:#100d08}
+.legend{display:flex;gap:18px;font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:10px;flex-wrap:wrap}
+.legend i{display:inline-block;width:11px;height:11px;margin-right:6px;vertical-align:middle}
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:0;border:1px solid var(--rule)}
+.metric{padding:13px 15px;border-right:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+.metric .k{font-family:var(--mono);font-size:10.5px;letter-spacing:.02em;color:var(--muted)}
+.metric .v{font-family:var(--disp);font-weight:500;font-size:26px;margin-top:5px;line-height:1.05}
+.metric .v small{font-size:12px;color:var(--muted);font-weight:400;font-family:var(--mono)}
+.progrow{display:flex;align-items:stretch;flex-wrap:wrap;gap:6px 2px}
+.chordpill{border:1px solid var(--rule2);border-radius:2px;padding:9px 12px 8px;background:var(--inset);min-width:58px;text-align:center;position:relative}
+.chordpill.borrowed{background:#241a26;border-color:var(--chrom)}
+.chordpill .cp-name{font-family:var(--disp);font-weight:600;font-size:19px;line-height:1}
+.chordpill .cp-rom{font-size:11px;color:var(--muted);margin-top:4px;font-family:var(--mono)}
+.chordpill.fn-T .cp-rom{color:var(--tonic)} .chordpill.fn-S .cp-rom{color:var(--subdom)} .chordpill.fn-D .cp-rom{color:var(--dominant)}
+.chordpill .cp-fn{font-size:9px;color:var(--faint);margin-top:4px;font-family:var(--mono)}
+.chordpill .cp-flag{position:absolute;top:-8px;left:50%;transform:translateX(-50%);font-family:var(--mono);font-size:8.5px;padding:1px 5px;border-radius:2px;background:var(--chrom);color:var(--paper);white-space:nowrap}
+.cp-arrow{display:flex;align-items:center;color:var(--faint);font-family:var(--body);font-style:italic;padding:0 3px}
+.cad{display:inline-block;font-family:var(--mono);font-size:9px;padding:1px 6px;border:1px solid var(--dominant);color:var(--dominant);border-radius:2px;margin:0 4px}
+.tbl{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
+.tbl th{text-align:left;font-family:var(--mono);font-size:10px;letter-spacing:.02em;color:var(--muted);padding:6px 9px;border-bottom:1.5px solid var(--ink);font-weight:400}
+.tbl td{padding:6px 9px;border-bottom:1px solid var(--rule);vertical-align:top}
+.tbl tr:last-child td{border-bottom:none}
+.tbl .t-ct{color:var(--tonic)} .tbl .t-nct{color:var(--subdom)} .tbl .t-tension{color:var(--dominant)}
+.chip{display:inline-block;font-family:var(--mono);font-size:10.5px;padding:2px 8px;border-radius:2px;border:1px solid var(--rule2);color:var(--muted);margin:3px 4px 3px 0}
+.chip.on{color:var(--tonic);border-color:var(--tonic)}
+.chip.warn{color:var(--subdom);border-color:var(--subdom)}
+.chip.bad{color:var(--dominant);border-color:var(--dominant)}
+.hist{display:flex;align-items:flex-end;gap:3px;height:120px;padding-top:6px}
+.hist .b{flex:1;background:var(--tonic);position:relative;min-height:2px}
+.hist .b.zero{background:var(--dominant)}
+.hist .b span{position:absolute;bottom:-18px;left:50%;transform:translateX(-50%);font-family:var(--mono);font-size:9.5px;color:var(--faint);white-space:nowrap}
+.histwrap{padding-bottom:22px}
+.summary{display:flex;gap:26px;align-items:flex-start;flex-wrap:wrap}
+.summary .big-key{font-family:var(--disp);font-weight:500;font-size:40px;line-height:1;letter-spacing:-.01em}
+.summary .big-key small{display:block;font-family:var(--mono);font-size:11.5px;color:var(--muted);font-weight:400;margin-top:7px}
+.summary .s-body{flex:1;min-width:260px;font-size:15px;line-height:1.65}
+.summary .s-body b{font-weight:600}
+.klist{display:flex;flex-direction:column;gap:0;margin-top:8px;border:1px solid var(--rule)}
+.krow{display:flex;align-items:center;gap:12px;font-size:13px;padding:8px 11px;border-bottom:1px solid var(--rule)}
+.krow:last-child{border-bottom:none}
+.krow.mod{background:#241a26}
+.krow .kt{font-family:var(--mono);font-size:11px;color:var(--muted);width:104px}
+.krow .kk{font-family:var(--disp);font-weight:500;font-size:15px}
+.deg-line{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.deg{font-family:var(--mono);font-size:11px;padding:5px 9px;border:1px solid var(--rule2);border-radius:2px;color:var(--muted);min-width:34px;text-align:center}
+.deg.stable{color:var(--tonic);border-color:var(--tonic)} .deg.tend{color:var(--subdom);border-color:var(--subdom)} .deg.chrom{color:var(--dominant);border-color:var(--dominant)}
+.deg b{display:block;font-size:9.5px;color:var(--faint);font-weight:400;margin-top:2px}
+.pat{font-family:var(--body);font-size:14px;padding:2px 0 2px 16px;border-left:2px solid var(--rule2);margin-top:10px;line-height:1.55;color:var(--ink)}
+.pat b{font-family:var(--mono);font-size:11px;font-weight:400;color:var(--muted);letter-spacing:.02em}
+.empty{color:var(--faint);font-size:14px;font-style:italic;padding:18px 0}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:26px}
+@media(max-width:720px){.two{grid-template-columns:1fr}}
+.tablescroll{overflow-x:auto}
+.flexbtn{display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+.fieldlabel{font-family:var(--mono);font-size:10.5px;color:var(--muted);letter-spacing:.02em;display:block}
+label.opt{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--muted)}
+label.opt input{accent-color:var(--dominant)}
+.foot{font-size:12.5px;color:var(--faint);line-height:1.65;margin-top:44px;padding-top:16px;border-top:1px solid var(--rule);font-style:italic;max-width:760px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="masthead">
+    <h1>Harmonic <em>Analysis</em></h1>
+    <div class="kicker">melody + chords · MIDI<br>vertical &amp; horizontal · global &amp; local</div>
+  </div>
+</header>
+<div class="sub">Give it two MIDI files — a <b>melody</b> and its <b>chords</b>. It lines them up in time and works out <em>what the music is doing</em>: functional harmony, the chord progression, key / mode and where they change, and where the melody sits against the chords and the key — <b>vertically</b> (note-against-chord) and <b>horizontally</b> (motion, intervals). No opinions, no advice — description only.</div>
+
+<div class="panel">
+  <h2><span class="n">I</span>Input — two MIDI files</h2>
+  <div class="drops">
+    <div id="dropMel" class="drop mel">
+      <div class="lbl">MELODY · .mid</div>
+      <div class="big">Drop the melody MIDI</div>
+      <div class="st" id="stMel">a single line / vocal part — monophonic is best</div>
+      <input id="fileMel" type="file" accept=".mid,.midi,audio/midi" class="hidden">
+    </div>
+    <div id="dropChd" class="drop chd">
+      <div class="lbl">CHORDS · .mid</div>
+      <div class="big">Drop the chords MIDI</div>
+      <div class="st" id="stChd">block chords or arpeggiated / broken — either works</div>
+      <input id="fileChd" type="file" accept=".mid,.midi,audio/midi" class="hidden">
+    </div>
+  </div>
+  <div class="flexbtn" style="margin-top:20px">
+    <button id="analyze" class="primary" disabled>Analyze</button>
+    <label class="opt"><input type="checkbox" id="optChdKey" checked> weight the chords more when finding the key</label>
+    <span id="status" class="mono dim"></span>
+  </div>
+  <p class="note" style="margin-top:16px">
+    <label class="opt" style="display:inline-flex"><input type="checkbox" id="optSave" checked> keep an anonymous copy of this analysis to improve the tool</label>
+    <span class="dim" style="display:block;margin-top:6px">Your MIDI files are read and analyzed in your browser. When the box above is ticked, a copy of the analysis and the note data is saved — no account, no personal details asked. <a href="privacy.html" style="color:var(--tonic)">What’s stored →</a></span>
+  </p>
+</div>
+
+<div id="results" class="hidden">
+
+  <div class="panel">
+    <h2><span class="n">II</span>Overview</h2>
+    <div id="summaryOut"></div>
+  </div>
+
+  <div class="panel">
+    <h2><span class="n">III</span>Time-aligned view</h2>
+    <canvas id="roll" height="320"></canvas>
+    <div class="legend">
+      <span><i style="background:var(--tonic)"></i>chord tone</span>
+      <span><i style="background:var(--subdom)"></i>non-chord tone (NCT)</span>
+      <span><i style="background:var(--dominant)"></i>tension (m2 / tritone)</span>
+      <span><i style="background:rgba(90,168,156,.22)"></i>chord spans</span>
+      <span class="dim">below the line: chord · roman · T/S/D</span>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2><span class="n">IV</span>Chord progression <span class="qual">&amp; functional harmony</span></h2>
+    <p class="note">Read straight from the chords MIDI — chord name, roman numeral in the local key, and function (T = tonic / home · S = subdominant / away · D = dominant / tension). Chords outside the key are flagged in plum (borrowed · secondary dominant · Neapolitan). Cadences sit between the chords.</p>
+    <div id="progOut"></div>
+  </div>
+
+  <div class="panel">
+    <h2><span class="n">V</span>Key, mode &amp; changes <span class="qual">— global + local</span></h2>
+    <div id="keyOut"></div>
+  </div>
+
+  <div class="panel">
+    <h2><span class="n">VI</span>Vertical — melody against the chords</h2>
+    <p class="note">Each melody note is classified against the chord sounding under it: is it a chord tone (root / 3rd / 5th / 7th), or a non-chord tone (passing, neighbor, suspension, appoggiatura, anticipation, pedal)? Dissonances on strong beats and tendency-tone resolutions are pulled out too.</p>
+    <div id="vertOut"></div>
+  </div>
+
+  <div class="panel">
+    <h2><span class="n">VII</span>Horizontal — melodic profile &amp; intervals</h2>
+    <div class="metrics" id="melMetrics"></div>
+    <div class="row" style="margin-top:22px">
+      <div class="col">
+        <span class="fieldlabel">Interval distribution (semitones, signed)</span>
+        <div class="histwrap" style="margin-top:8px"><div class="hist" id="ivHist"></div></div>
+        <div class="note">0 = repeated · negative = down · positive = up. Mostly steps (±1–2) = smooth; leaps (≥±5) = motion / hooks.</div>
+      </div>
+      <div class="col">
+        <span class="fieldlabel">Scale-degree usage against the key</span>
+        <div id="degOut" style="margin-top:8px"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2><span class="n">VIII</span>Energy &amp; shape <span class="qual">— the melody over time</span></h2>
+    <canvas id="energyRoll" height="190"></canvas>
+    <div class="legend">
+      <span><i style="background:var(--subdom)"></i>pitch height</span>
+      <span><i style="background:var(--tonic)"></i>note density</span>
+      <span><i style="background:var(--dominant)"></i>energy peak</span>
+    </div>
+    <div id="energyOut" style="margin-top:12px"></div>
+  </div>
+
+</div>
+
+<p class="foot">
+Key by Krumhansl–Schmuckler profile correlation (global, and local via a sliding window). Chords by a time-windowed pitch-class weight vector matched to templates — it catches block chords and arpeggios alike. Roman numerals and function are read in the local key. Vertical classification is chord-tone membership plus context-based non-chord-tone heuristics. Everything runs in the browser; nothing is uploaded.
+</p>
+</div>
+
+<script>
+"use strict";
+/* ============================================================ HELPERS ============= */
+const NOTE_NAMES=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const $=id=>document.getElementById(id);
+function midiToName(m){ const r=Math.round(m); return NOTE_NAMES[((r%12)+12)%12]+(Math.floor(r/12)-1); }
+function pcOf(midi){ return ((Math.round(midi)%12)+12)%12; }
+function pcName(pc){ return NOTE_NAMES[((pc%12)+12)%12]; }
+function clamp(v,a,b){ return Math.max(a,Math.min(b,v)); }
+function median(a){ const s=[...a].sort((x,y)=>x-y); const n=s.length; return n?(n%2?s[(n-1)/2]:(s[n/2-1]+s[n/2])/2):0; }
+function mean(a){ return a.length? a.reduce((x,y)=>x+y,0)/a.length:0; }
+function normalize(a){ const s=a.reduce((x,y)=>x+y,0); return s? a.map(v=>v/s): a.slice(); }
+function entropy(counts){ const s=counts.reduce((a,b)=>a+b,0); if(!s) return 0; let e=0; counts.forEach(c=>{ const p=c/s; if(p>0) e-=p*Math.log2(p); }); return e; }
+function fmtT(t){ const m=Math.floor(t/60), s=t-m*60; return m+':'+s.toFixed(1).padStart(4,'0'); }
+function esc(s){ return (s||'').replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c])); }
+
+/* ============================================================ MIDI PARSE (poly) === */
+function parseMidiPoly(buf){
+  const dv=new DataView(buf); let p=0;
+  const u32=()=>{const v=dv.getUint32(p);p+=4;return v;}, u16=()=>{const v=dv.getUint16(p);p+=2;return v;}, u8=()=>dv.getUint8(p++);
+  if(u32()!==0x4d546864) throw new Error('not a valid Standard MIDI File');
+  const hlen=u32(); u16(); const ntrk=u16(); const division=u16(); p+=(hlen-6);
+  if(division & 0x8000) throw new Error('SMPTE timing not supported — export as ticks/beat');
+  const tpq=division||480, tempos=[{tick:0,us:500000}], raw=[]; let timeSig={num:4,den:4};
+  for(let tr=0; tr<ntrk && p<dv.byteLength; tr++){
+    if(u32()!==0x4d54726b) break;
+    const len=u32(), end=p+len; let tick=0, running=0; const on={};
+    const close=(note,tk)=>{ const a=on[note]; if(a&&a.length){ const st=a.shift(); raw.push({note,startTick:st,endTick:tk}); } };
+    while(p<end){
+      let d=0,b; do{ b=u8(); d=(d<<7)|(b&0x7f); }while(b&0x80); tick+=d;
+      let ev=u8();
+      if(ev<0x80){ p--; ev=running; } else if(ev<0xf0){ running=ev; }
+      if(ev===0xff){ const meta=u8(); let l=0,bb; do{ bb=u8(); l=(l<<7)|(bb&0x7f); }while(bb&0x80);
+        if(meta===0x51 && l===3){ tempos.push({tick, us:(dv.getUint8(p)<<16)|(dv.getUint8(p+1)<<8)|dv.getUint8(p+2)}); }
+        else if(meta===0x58 && l>=2){ timeSig={num:dv.getUint8(p), den:Math.pow(2,dv.getUint8(p+1))}; }
+        p+=l;
+      } else if(ev===0xf0||ev===0xf7){ let l=0,bb; do{ bb=u8(); l=(l<<7)|(bb&0x7f); }while(bb&0x80); p+=l; }
+      else { const type=ev&0xf0;
+        if(type===0x90){ const n=u8(), vel=u8(); if(vel>0)(on[n]=on[n]||[]).push(tick); else close(n,tick); }
+        else if(type===0x80){ const n=u8(); u8(); close(n,tick); }
+        else if(type===0xc0||type===0xd0){ u8(); }
+        else { u8(); u8(); }
+      }
+    }
+    p=end;
+  }
+  tempos.sort((a,b)=>a.tick-b.tick);
+  const tickToSec=tk=>{ let sec=0,last=0,us=500000; for(const seg of tempos){ if(seg.tick>tk) break; sec+=(seg.tick-last)/tpq*(us/1e6); last=seg.tick; us=seg.us; } return sec+(tk-last)/tpq*(us/1e6); };
+  const notes=raw.filter(n=>n.endTick>n.startTick).map(n=>{ const t=tickToSec(n.startTick); return {t:+t.toFixed(4), dur:Math.max(0.02,+(tickToSec(n.endTick)-t).toFixed(4)), midi:n.note, startTick:n.startTick}; }).sort((a,b)=>a.t-b.t||a.midi-b.midi);
+  const bpm = clamp(Math.round(60000000/(tempos[tempos.length>1?1:0].us||500000)),30,300);
+  const secPerBeat = 60/bpm; // quarter-note beat
+  return {notes, bpm, tpq, timeSig, secPerBeat, tempos, tickToSec};
+}
+function forceMono(notes){
+  // keep earliest-onset note; trim overlaps -> a single melodic line
+  const ns=notes.map(n=>({...n})).sort((a,b)=>a.t-b.t||b.midi-a.midi);
+  const out=[];
+  for(const n of ns){ const p=out[out.length-1];
+    if(p && n.t < p.t+p.dur-1e-3){ if(n.t-p.t<0.02) continue; p.dur=Math.max(0.02,+(n.t-p.t).toFixed(4)); }
+    out.push(n);
+  }
+  return out.sort((a,b)=>a.t-b.t);
+}
+
+/* ============================================================ GRID (bars/beats) === */
+function buildGrid(mid, tEnd){
+  const spb=mid.secPerBeat, beatsPerBar=mid.timeSig.num*(4/mid.timeSig.den);
+  const barDur=spb*beatsPerBar;
+  const beats=[]; for(let t=0;t<=tEnd+1e-6;t+=spb) beats.push(+t.toFixed(4));
+  const bars=[]; for(let t=0;t<=tEnd+1e-6;t+=barDur) bars.push(+t.toFixed(4));
+  return {spb, beatsPerBar, barDur, beats, bars};
+}
+function metricStrength(t, grid){
+  // position within bar: downbeat strongest
+  const rel=((t-0)%grid.barDur+grid.barDur)%grid.barDur;
+  const beatPos=rel/grid.spb; const nearBeat=Math.round(beatPos);
+  const onBeat=Math.abs(beatPos-nearBeat)<0.12;
+  if(!onBeat) return 0.2;
+  if(nearBeat%grid.beatsPerBar===0) return 1.0;
+  if(grid.beatsPerBar%2===0 && nearBeat%(grid.beatsPerBar/2)===0) return 0.6;
+  return 0.4;
+}
+
+/* ============================================================ KEY (Krumhansl) ==== */
+const KS_MAJ=[6.35,2.23,3.48,2.33,4.38,4.09,2.52,5.19,2.39,3.66,2.29,2.88];
+const KS_MIN=[6.33,2.68,3.52,5.38,2.60,3.53,2.54,4.75,3.98,2.69,3.34,3.17];
+function corr(a,b){ const ma=mean(a),mb=mean(b); let num=0,da=0,db=0; for(let i=0;i<12;i++){ const x=a[i]-ma,y=b[i]-mb; num+=x*y; da+=x*x; db+=y*y; } return (da&&db)? num/Math.sqrt(da*db):0; }
+function rotate(a,n){ return a.map((_,i)=>a[(i-n+12)%12]); }
+function scaleFor(tonic,mode){ const maj=[0,2,4,5,7,9,11], min=[0,2,3,5,7,8,10]; return (mode==='major'?maj:min).map(d=>(tonic+d)%12); }
+function detectKey(pc){
+  let best={corr:-2};
+  for(let t=0;t<12;t++){
+    const maj=corr(rotate(KS_MAJ,t),pc), min=corr(rotate(KS_MIN,t),pc);
+    if(maj>best.corr) best={tonic:t,mode:'major',corr:maj};
+    if(min>best.corr) best={tonic:t,mode:'minor',corr:min};
+  }
+  best.name=pcName(best.tonic)+(best.mode==='major'?' major':' minor');
+  best.scale=scaleFor(best.tonic,best.mode);
+  best.scaleSet=new Set(best.scale);
+  return best;
+}
+// weighted pc histogram over a time window from a note list
+function pcHist(notes,t0,t1){
+  const w=new Array(12).fill(0);
+  notes.forEach(n=>{ const ov=Math.min(n.t+n.dur,t1)-Math.max(n.t,t0); if(ov>0) w[pcOf(n.midi)]+=ov; });
+  return w;
+}
+// MODE (church modes) fit for a given tonic
+const MODES=[
+  {name:'Ionian (major)',set:[0,2,4,5,7,9,11]},
+  {name:'Dorian',set:[0,2,3,5,7,9,10]},
+  {name:'Phrygian',set:[0,1,3,5,7,8,10]},
+  {name:'Lydian',set:[0,2,4,6,7,9,11]},
+  {name:'Mixolydian',set:[0,2,4,5,7,9,10]},
+  {name:'Aeolian (natural minor)',set:[0,2,3,5,7,8,10]},
+  {name:'Locrian',set:[0,1,3,5,6,8,10]},
+];
+function detectMode(pc,tonic){
+  const pcn=normalize(pc);
+  let best={score:-1};
+  MODES.forEach(m=>{ const tmpl=new Array(12).fill(0); m.set.forEach(d=>tmpl[(tonic+d)%12]=1);
+    const sc=corr(tmpl,pcn); if(sc>best.score) best={name:m.name,score:sc,set:m.set}; });
+  return best;
+}
+
+/* ============================================================ CHORD DETECT ======== */
+const QUALS=[
+  {q:'maj',  iv:[0,4,7],     name:'',   rom:'',   sev:false, up:true},
+  {q:'min',  iv:[0,3,7],     name:'m',  rom:'',   sev:false, up:false},
+  {q:'dim',  iv:[0,3,6],     name:'dim',rom:'°',  sev:false, up:false},
+  {q:'aug',  iv:[0,4,8],     name:'aug',rom:'+',  sev:false, up:true},
+  {q:'sus4', iv:[0,5,7],     name:'sus4',rom:'sus4',sev:false,up:true},
+  {q:'sus2', iv:[0,2,7],     name:'sus2',rom:'sus2',sev:false,up:true},
+  {q:'7',    iv:[0,4,7,10],  name:'7',  rom:'7',  sev:true,  up:true},
+  {q:'maj7', iv:[0,4,7,11],  name:'maj7',rom:'maj7',sev:true, up:true},
+  {q:'min7', iv:[0,3,7,10],  name:'m7', rom:'7',  sev:true,  up:false},
+  {q:'m7b5', iv:[0,3,6,10],  name:'m7♭5',rom:'ø7',sev:true,  up:false},
+  {q:'dim7', iv:[0,3,6,9],   name:'dim7',rom:'°7',sev:true,  up:false},
+  {q:'6',    iv:[0,4,7,9],   name:'6',  rom:'6',  sev:false, up:true},
+  {q:'min6', iv:[0,3,7,9],   name:'m6', rom:'6',  sev:false, up:false},
+  {q:'mmaj7',iv:[0,3,7,11],  name:'m(maj7)',rom:'maj7',sev:true,up:false},
+];
+function matchChord(w, bassPc){
+  const tot=w.reduce((a,b)=>a+b,0)||1; const wn=w.map(v=>v/tot);
+  let best={score:-99};
+  for(let root=0;root<12;root++){
+    for(const Q of QUALS){
+      const set=new Set(Q.iv.map(i=>(root+i)%12));
+      let cover=0,extra=0,missing=0;
+      for(let pc=0;pc<12;pc++){ if(set.has(pc)) cover+=wn[pc]; else extra+=wn[pc]; }
+      Q.iv.forEach(i=>{ if(wn[(root+i)%12]<0.02) missing++; });
+      let score=cover - 0.75*extra - 0.06*missing - 0.02*(Q.iv.length-3>0?Q.iv.length-3:0);
+      if(wn[root]>0.02) score+=0.06;                 // root present
+      if(bassPc===root) score+=0.12;                  // bass = root (root position)
+      if(bassPc===(root+Q.iv[1])%12) score+=0.02;
+      if(score>best.score) best={score,root,Q,set};
+    }
+  }
+  return best;
+}
+function invFigure(Q, bassPc, root){
+  const pos=Q.iv.indexOf(((bassPc-root)%12+12)%12);
+  if(pos<=0) return '';
+  if(!Q.sev) return pos===1?'6':'6/4';
+  return ['','6/5','4/3','4/2'][pos]||'';
+}
+function chordName(root,Q,bassPc){
+  let nm=pcName(root)+Q.name;
+  if(bassPc!==root && bassPc>=0) nm+='/'+pcName(bassPc);
+  return nm;
+}
+// detect one chord over [t0,t1) from duration-weighted pitch classes (handles block + arpeggio)
+function detectOne(chNotes,t0,t1){
+  const active=chNotes.filter(n=>n.t<t1-1e-4 && n.t+n.dur>t0+1e-4);
+  if(!active.length) return null;
+  const w=pcHist(chNotes,t0,t1);
+  const bassPc=pcOf(Math.min(...active.map(n=>n.midi)));
+  const distinct=new Set(active.map(n=>pcOf(n.midi))).size;
+  const m=matchChord(w,bassPc);
+  return {t0,t1,root:m.root,Q:m.Q,bassPc,score:m.score,distinct};
+}
+// segment chords MIDI into chord spans. Default = one chord per bar (robust for arpeggios);
+// split a bar into halves only when both halves are clearly distinct block chords.
+function segmentChords(chNotes, grid, tEnd){
+  if(!chNotes.length) return [];
+  const bars=grid.bars.filter(t=>t<tEnd-1e-6); if(!bars.length) bars.push(0);
+  const cells=[];
+  for(let i=0;i<bars.length;i++){
+    const b0=bars[i], b1=(i+1<bars.length)?bars[i+1]:tEnd;
+    const whole=detectOne(chNotes,b0,b1); if(!whole) continue;
+    const mid=(b0+b1)/2;
+    const h1=detectOne(chNotes,b0,mid), h2=detectOne(chNotes,mid,b1);
+    if(h1&&h2&&(h1.root!==h2.root||h1.Q.q!==h2.Q.q)&&h1.distinct>=3&&h2.distinct>=3){ cells.push(h1,h2); }
+    else cells.push(whole);
+  }
+  // merge consecutive equal chords
+  const segs=[];
+  for(const c of cells){
+    const p=segs[segs.length-1];
+    if(p && p.root===c.root && p.Q.q===c.Q.q && p.bassPc===c.bassPc && c.t0-p.t1<grid.spb*0.6){ p.t1=c.t1; }
+    else segs.push({t0:c.t0,t1:c.t1,root:c.root,Q:c.Q,bassPc:c.bassPc});
+  }
+  segs.forEach(s=>{
+    s.name=chordName(s.root,s.Q,s.bassPc);
+    s.fig=invFigure(s.Q,s.bassPc,s.root);
+    s.tones=s.Q.iv.map(i=>(s.root+i)%12);
+    s.toneSet=new Set(s.tones);
+  });
+  return segs;
+}
+function chordAt(segs,t){ return segs.find(s=>t>=s.t0-1e-3 && t<s.t1) || null; }
+
+/* ============================================================ ROMAN / FUNCTION ==== */
+const NUM=['I','','II','','III','IV','','V','','VI','','VII'];
+const NUM_LOW=['i','','ii','','iii','iv','','v','','vi','','vii'];
+function degLabel(semi){ // semitone above tonic -> scale-degree label (accidental)
+  return ['1','♭2','2','♭3','3','4','♯4','5','♭6','6','♭7','7'][((semi%12)+12)%12];
+}
+function romanBase(semi,upper){
+  const map=[[0,'I'],[1,'♭II'],[2,'II'],[3,'♭III'],[4,'III'],[5,'IV'],[6,'♯IV'],[7,'V'],[8,'♭VI'],[9,'VI'],[10,'♭VII'],[11,'VII']];
+  let base=map[((semi%12)+12)%12][1];
+  if(!upper){ base=base.replace(/[IV]+/,m=>m.toLowerCase()); }
+  return base;
+}
+// diatonic function tables by semitone above tonic
+const FN_MAJ={0:'T',2:'S',4:'T',5:'S',7:'D',9:'T',11:'D'};
+const FN_MIN={0:'T',2:'S',3:'T',5:'S',7:'D',8:'T',10:'S',11:'D'};
+// relaxed function for chromatic/borrowed chords, by scale-degree letter
+const FN_RELAX={0:'T',1:'S',2:'S',3:'T',4:'T',5:'S',6:'D',7:'D',8:'S',9:'T',10:'D',11:'D'};
+function analyzeChordInKey(seg, key){
+  const semi=((seg.root-key.tonic)%12+12)%12;
+  const scaleSet=key.scaleSet;
+  let rom=romanBase(semi,seg.Q.up);
+  rom+=seg.Q.rom + (seg.fig?('<sup>'+seg.fig+'</sup>'):'');
+  const diatonicTones=seg.Q.iv.every(i=>scaleSet.has((seg.root+i)%12));
+  let fn=(key.mode==='major'?FN_MAJ:FN_MIN)[semi];
+  let flag='';
+  if(!diatonicTones){
+    const scaleSemis=(key.mode==='major'?[0,2,4,5,7,9,11]:[0,2,3,5,7,8,10]);
+    const isDomType=(seg.Q.q==='7'||seg.Q.q==='maj');      // dom7 or major triad
+    const targetSemi=((semi+7)%12);                          // chord resolves down a fifth
+    if(isDomType && targetSemi!==0 && semi!==7 && scaleSemis.includes(targetSemi)){
+      flag='V/'+degLabel(targetSemi);
+      rom='V'+(seg.Q.q==='7'?'7':'')+(seg.fig?('<sup>'+seg.fig+'</sup>'):'')+'/'+degLabel(targetSemi);
+      fn='D';
+    } else if(semi===1){ flag='Neapolitan (♭II)'; fn='S'; }
+    else if(seg.Q.q==='dim7'||seg.Q.q==='m7b5'){ flag='secondary vii°'; fn='D'; }
+    else { flag='borrowed'; fn=FN_RELAX[semi]; }
+  }
+  if(fn===undefined) fn=FN_RELAX[semi]||'x';
+  seg.semi=semi; seg.rom=rom; seg.fn=fn; seg.flag=flag; seg.diatonic=diatonicTones; seg.degLabel=degLabel(semi);
+  return seg;
+}
+function detectCadences(segs){
+  for(let i=1;i<segs.length;i++){
+    const a=segs[i-1], b=segs[i], next=segs[i+1]; let cad='';
+    const bTonic=b.semi===0, bSub=(b.semi===9||b.semi===8);
+    if(a.fn==='D' && bTonic){ cad=(a.semi===7)?'Authentic cadence (V→I)':'D→T close'; }
+    else if(a.fn==='S' && bTonic && a.semi===5){ cad='Plagal cadence (IV→I)'; }
+    else if(a.fn==='D' && a.semi===7 && bSub){ cad='Deceptive cadence (V→vi)'; }
+    else if(b.fn==='D' && b.semi===7 && a.fn!=='D' && (!next || next.semi!==0)){ cad='Half cadence (→V)'; }
+    b.cadIn=cad;
+  }
+}
+
+/* ============================================================ LOCAL KEYS ========== */
+function corrOfKeyOnWindow(key,w){ const prof=key.mode==='major'?KS_MAJ:KS_MIN; return corr(rotate(prof,key.tonic),w); }
+function localKeys(allNotes, grid, tEnd, globalKey){
+  const nBars=tEnd/grid.barDur;
+  // short pieces: a genuine modulation needs room. Keep single global key.
+  if(!(grid.barDur>0) || nBars<6) return {regions:[{t0:0,t1:tEnd,key:globalKey}],changed:false,keys:[globalKey]};
+  const win=grid.barDur*4, step=grid.barDur*2;             // 4-bar window, 2-bar hop
+  const MIN_REGION=grid.barDur*4;                           // a modulation region must last ≥4 bars
+  const MARGIN=0.06;                                         // new key must beat current key's fit by this
+  let cur=globalKey; const raw=[];
+  for(let t=0;t<tEnd-1e-6;t+=step){
+    const t1=Math.min(tEnd,t+win);
+    const w=pcHist(allNotes,t,t1);
+    if(w.reduce((a,b)=>a+b,0)<1e-3){ raw.push({t0:t,t1,key:cur}); continue; }
+    const best=detectKey(w);
+    const curFit=corrOfKeyOnWindow(cur,w);
+    // only switch on strong, decisive evidence (hysteresis)
+    if((best.tonic!==cur.tonic||best.mode!==cur.mode) && best.corr>0.78 && best.corr-curFit>MARGIN) cur=best;
+    raw.push({t0:t,t1,key:cur});
+  }
+  // merge into regions
+  let regions=[];
+  raw.forEach(r=>{ const p=regions[regions.length-1];
+    if(p && p.key.tonic===r.key.tonic && p.key.mode===r.key.mode) p.t1=r.t1;
+    else regions.push({t0:r.t0,t1:r.t1,key:r.key}); });
+  // absorb regions shorter than MIN_REGION into the previous region
+  const filtered=[];
+  regions.forEach(r=>{ if(filtered.length && (r.t1-r.t0)<MIN_REGION){ filtered[filtered.length-1].t1=r.t1; }
+    else filtered.push({...r}); });
+  // re-merge neighbors that ended up equal after absorption
+  regions=[]; filtered.forEach(r=>{ const p=regions[regions.length-1];
+    if(p && p.key.tonic===r.key.tonic && p.key.mode===r.key.mode) p.t1=r.t1; else regions.push(r); });
+  const uniq=[]; regions.forEach(r=>{ if(!uniq.some(u=>u.tonic===r.key.tonic&&u.mode===r.key.mode)) uniq.push(r.key); });
+  return {regions, changed:uniq.length>=2, keys:uniq.length?uniq:[globalKey]};
+}
+function keyAtTime(lk,t,fallback){ const r=lk.regions.find(r=>t>=r.t0-1e-3&&t<r.t1); return r?r.key:fallback; }
+
+/* ============================================================ VERTICAL (NCT) ====== */
+function chordToneRole(pc, seg){
+  const idx=seg.tones.indexOf(pc);
+  if(idx<0) return null;
+  const names=seg.Q.sev?['root','3rd','5th','7th']:['root','3rd','5th'];
+  return names[idx]||'chord tone';
+}
+function classifyMelodyNote(i, mel, segs, grid, key){
+  const n=mel[i]; const seg=chordAt(segs,n.t+n.dur*0.25) || chordAt(segs,n.t);
+  const res={note:n, seg, cat:'', detail:'', tension:false, degree:null};
+  if(key) res.degree=degLabel(((pcOf(n.midi)-key.tonic)%12+12)%12);
+  if(!seg){ res.cat='—'; res.detail='no chord'; return res; }
+  const pc=pcOf(n.midi);
+  const role=chordToneRole(pc,seg);
+  if(role){ res.cat='chord tone'; res.detail=role; res.chordTone=true; return res; }
+  // NCT: use neighbors
+  const prev=mel[i-1], next=mel[i+1];
+  const strong=metricStrength(n.t,grid)>=0.6;
+  const pPc=prev?pcOf(prev.midi):null, nPc=next?pcOf(next.midi):null;
+  const prevCT=prev? !!chordToneRole(pPc, chordAt(segs,prev.t)||seg):false;
+  const nextCT=next? !!chordToneRole(nPc, chordAt(segs,next.t)||seg):false;
+  const di=prev? Math.round(n.midi)-Math.round(prev.midi):null;
+  const dn=next? Math.round(next.midi)-Math.round(n.midi):null;
+  let cat='non-chord tone', detail='NCT';
+  const stepIn=di!==null && Math.abs(di)<=2, stepOut=dn!==null && Math.abs(dn)<=2;
+  const leapIn=di!==null && Math.abs(di)>=3, leapOut=dn!==null && Math.abs(dn)>=3;
+  if(prev && Math.round(prev.midi)===Math.round(n.midi) && strong && stepOut && dn<0 && nextCT){ cat='suspension'; detail='tied from the previous note, resolves down by step'; }
+  else if(stepIn && stepOut && di*dn>0 && prevCT && nextCT){ cat='passing tone'; detail='steps between two chord tones'; }
+  else if(stepIn && stepOut && di*dn<0 && prevCT && nextCT){ cat='neighbor tone'; detail=(di>0?'lower':'upper')+' neighbor'; }
+  else if(leapIn && stepOut && strong){ cat='appoggiatura'; detail='approached by leap, resolved by step'; }
+  else if(stepIn && leapOut){ cat='escape tone'; detail='approached by step, left by leap'; }
+  else if(next && Math.round(next.midi)===Math.round(n.midi) && !strong && nextCT){ cat='anticipation'; detail='sounds the next chord tone early'; }
+  else if(n.dur>grid.barDur*0.9){ cat='pedal / held tone'; detail='held while the chords change beneath it'; }
+  // tension flag: dissonant against chord root
+  const iv=((pc-seg.root)%12+12)%12;
+  if(iv===1||iv===6||iv===11) res.tension=true;
+  res.cat=cat; res.detail=detail+(strong?' · strong beat':'');
+  res.strong=strong;
+  return res;
+}
+
+/* ============================================================ MELODY PROFILE ====== */
+function melodyProfile(mel){
+  const pitches=mel.map(n=>Math.round(n.midi));
+  const intervals=[]; for(let i=1;i<pitches.length;i++) intervals.push(pitches[i]-pitches[i-1]);
+  const ivH={}; for(let k=-12;k<=12;k++) ivH[k]=0;
+  intervals.forEach(v=>{ const c=clamp(v,-12,12); ivH[c]++; });
+  const abs=intervals.map(Math.abs);
+  const range=pitches.length?Math.max(...pitches)-Math.min(...pitches):0;
+  const steps=abs.filter(v=>v>=1&&v<=2).length, leaps=abs.filter(v=>v>=5).length;
+  const rep=intervals.filter(v=>v===0).length;
+  let dirCh=0,prev=0; intervals.forEach(v=>{ const d=Math.sign(v); if(d){ if(prev&&d!==prev)dirCh++; prev=d; } });
+  const avgIv=mean(abs);
+  return {pitches,intervals,ivH,range,steps,leaps,rep,dirCh,avgIv,
+    stepRatio:intervals.length?steps/intervals.length:0,
+    leapRatio:intervals.length?leaps/intervals.length:0,
+    repRatio:intervals.length?rep/intervals.length:0,
+    dirRate:intervals.length?dirCh/intervals.length:0,
+    largest:abs.length?Math.max(...abs):0, n:mel.length};
+}
+function computeEnergy(notes){
+  if(!notes||notes.length<2) return null;
+  const t0=notes[0].t, tEnd=Math.max(...notes.map(n=>n.t+n.dur)), span=Math.max(.001,tEnd-t0);
+  const midis=notes.map(n=>n.midi), loM=Math.min(...midis), hiM=Math.max(...midis), pR=Math.max(1,hiM-loM);
+  const step=Math.max(0.2,span/120), win=Math.min(2.5,Math.max(1,span/6)); const grid=[];
+  for(let tau=t0;tau<=tEnd+1e-6;tau+=step){ const c=notes.filter(n=>n.t>=tau-win/2&&n.t<tau+win/2).length; grid.push({t:tau,d:c/win}); }
+  const dMax=Math.max(.0001,...grid.map(g=>g.d));
+  const energy=grid.map(g=>{ let best=notes[0],bd=1e9; for(const n of notes){ const c=n.t+n.dur/2,dd=Math.abs(c-g.t); if(dd<bd){bd=dd;best=n;} } return {t:g.t,e:.5*((best.midi-loM)/pR)+.5*(g.d/dMax),p:best.midi,d:g.d}; });
+  let peak=energy[0]; energy.forEach(e=>{ if(e.e>peak.e) peak=e; });
+  const hiIdx=midis.indexOf(hiM);
+  return {t0,tEnd,span,energy,dMax,loM,hiM,peakT:peak.t,peakFrac:(peak.t-t0)/span,hiT:notes[hiIdx].t,hiFrac:(notes[hiIdx].t-t0)/span};
+}
+
+/* ============================================================ STATE / LOAD ======== */
+let MEL=null, CHD=null, A=null;
+function wireDrop(dropId,inputId,which){
+  const drop=$(dropId), input=$(inputId);
+  drop.addEventListener('click',()=>input.click());
+  input.addEventListener('change',e=>{ if(e.target.files[0]) loadMidi(e.target.files[0],which); });
+  ['dragover','dragenter'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('over');}));
+  ['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('over');}));
+  drop.addEventListener('drop',e=>{ if(e.dataTransfer.files[0]) loadMidi(e.dataTransfer.files[0],which); });
+}
+wireDrop('dropMel','fileMel','mel');
+wireDrop('dropChd','fileChd','chd');
+async function loadMidi(file,which){
+  if(!/\.midi?$/i.test(file.name) && !/midi/i.test(file.type)){ $('status').textContent='.mid files only'; return; }
+  try{
+    const mid=parseMidiPoly(await file.arrayBuffer());
+    if(mid.notes.length<1){ $('status').textContent=file.name+': no notes found'; return; }
+    if(which==='mel'){ mid.notes=forceMono(mid.notes); MEL={file,mid};
+      $('dropMel').classList.add('loaded'); $('stMel').textContent=file.name+' · '+mid.notes.length+' notes · '+mid.bpm+' BPM'; }
+    else { CHD={file,mid};
+      $('dropChd').classList.add('loaded'); $('stChd').textContent=file.name+' · '+mid.notes.length+' notes · '+mid.timeSig.num+'/'+mid.timeSig.den; }
+    $('analyze').disabled=!(MEL&&CHD);
+    $('status').textContent=(MEL&&CHD)?'both files ready — hit Analyze':'waiting for the other MIDI';
+  }catch(err){ $('status').textContent=file.name+' could not be read: '+err.message; }
+}
+$('analyze').addEventListener('click',analyze);
+
+/* ============================================================ ANALYZE ============= */
+function analyze(){
+  if(!(MEL&&CHD)) return;
+  const mel=MEL.mid.notes, chd=CHD.mid.notes;
+  const tEnd=Math.max(
+    ...mel.map(n=>n.t+n.dur),
+    ...chd.map(n=>n.t+n.dur)
+  );
+  const grid=buildGrid(CHD.mid, tEnd);
+  // global key
+  const wMel=pcHist(mel,0,tEnd), wChd=pcHist(chd,0,tEnd);
+  const chWeight=$('optChdKey').checked?1.6:1;
+  const wAll=wMel.map((v,i)=>v+chWeight*wChd[i]);
+  const globalKey=detectKey(wAll);
+  const globalMode=detectMode(wAll,globalKey.tonic);
+  // local keys
+  const allNotes=mel.concat(chd);
+  const lk=localKeys(allNotes,grid,tEnd,globalKey);
+  // chord segmentation + roman/function in local key
+  const segs=segmentChords(chd,grid,tEnd);
+  segs.forEach(s=>{ s.localKey=keyAtTime(lk,(s.t0+s.t1)/2,globalKey); analyzeChordInKey(s,s.localKey); });
+  detectCadences(segs);
+  // vertical
+  const vert=mel.map((n,i)=>classifyMelodyNote(i,mel,segs,grid,keyAtTime(lk,n.t,globalKey)));
+  // profile / energy
+  const prof=melodyProfile(mel);
+  const energy=computeEnergy(mel);
+  A={mel,chd,tEnd,grid,globalKey,globalMode,lk,segs,vert,prof,energy};
+  $('results').classList.remove('hidden');
+  render();
+  $('results').scrollIntoView({behavior:'smooth',block:'start'});
+  collectData();   // best-effort, fire-and-forget; never blocks the analysis
+}
+
+/* ============================================================ COLLECT (opt-in) ===
+   Posts a compact copy of the analysis to the owner's backend (Cloudflare Pages
+   Function → D1). No secrets live here — the DB binding and the admin token stay
+   server-side. Runs only over http(s), only when the "keep a copy" box is ticked,
+   and silently does nothing if the endpoint is absent or offline. */
+async function collectData(){
+  try{
+    if(location.protocol==='file:') return;                 // local preview: nothing to post to
+    const optSave=$('optSave'); if(optSave && !optSave.checked) return;
+    if(!A) return;
+    const compact=arr=>arr.map(n=>[+n.t.toFixed(3),+n.dur.toFixed(3),Math.round(n.midi)]);
+    const ct=A.vert.filter(v=>v.chordTone).length;
+    const nctList=A.vert.filter(v=>!v.chordTone && v.cat!=='—');
+    const nctTypes={}; nctList.forEach(v=>{ const c=v.cat.split(' ')[0]; nctTypes[c]=(nctTypes[c]||0)+1; });
+    const payload={
+      v:1, ts:Date.now(),
+      melName:(MEL&&MEL.file&&MEL.file.name)||null, chdName:(CHD&&CHD.file&&CHD.file.name)||null,
+      bpm:CHD.mid.bpm, timeSigNum:CHD.mid.timeSig.num, timeSigDen:CHD.mid.timeSig.den,
+      bars:Math.max(1,Math.round(A.tEnd/A.grid.barDur)),
+      key:{name:A.globalKey.name,tonic:A.globalKey.tonic,mode:A.globalKey.mode,corr:+A.globalKey.corr.toFixed(3)},
+      mode:{name:A.globalMode.name,score:+A.globalMode.score.toFixed(3)},
+      changed:A.lk.changed,
+      localKeys:A.lk.regions.map(r=>({t0:+r.t0.toFixed(2),t1:+r.t1.toFixed(2),name:r.key.name})),
+      chords:A.segs.map(s=>({t0:+s.t0.toFixed(2),t1:+s.t1.toFixed(2),name:s.name,rom:s.rom.replace(/<[^>]+>/g,''),fn:s.fn,flag:s.flag||'',cad:s.cadIn||''})),
+      vertical:{chordTones:ct,nct:nctList.length,tension:A.vert.filter(v=>v.tension).length,consonancePct:Math.round(100*ct/(A.vert.length||1)),nctTypes},
+      profile:{n:A.prof.n,range:A.prof.range,stepRatio:+A.prof.stepRatio.toFixed(3),leapRatio:+A.prof.leapRatio.toFixed(3),dirRate:+A.prof.dirRate.toFixed(3),largest:A.prof.largest,repRatio:+A.prof.repRatio.toFixed(3)},
+      energy:A.energy?{peakFrac:+A.energy.peakFrac.toFixed(3),hiFrac:+A.energy.hiFrac.toFixed(3),loM:A.energy.loM,hiM:A.energy.hiM}:null,
+      raw:{mel:compact(A.mel),chd:compact(A.chd)}
+    };
+    await fetch('/api/collect',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),keepalive:true});
+  }catch(e){ /* best-effort only — analysis already succeeded */ }
+}
+
+/* ============================================================ RENDER ============== */
+function render(){
+  drawSummary(); drawRoll(); drawProg(); drawKeys(); drawVert(); drawMel(); drawEnergyPanel();
+}
+
+function drawSummary(){
+  const k=A.globalKey, md=A.globalMode;
+  const ct=A.vert.filter(v=>v.chordTone).length, nct=A.vert.filter(v=>v.cat && !v.chordTone && v.cat!=='—').length;
+  const cons=A.vert.length?Math.round(100*ct/(ct+nct||1)):0;
+  const nBars=Math.max(1,Math.round(A.tEnd/A.grid.barDur));
+  const hr=(A.segs.length/nBars);
+  const modLine=A.lk.changed?`<span class="chip warn">${A.lk.keys.map(x=>x.name).join(' → ')}</span>`:`<span class="chip on">single key</span>`;
+  const modeNote=(md.name.indexOf('Ionian')<0 && md.name.indexOf('Aeolian')<0 && md.score>0.55)?`Modal colour: <b>${pcName(k.tonic)} ${md.name}</b>. `:'';
+  $('summaryOut').innerHTML=`<div class="summary">
+    <div class="big-key">${k.name}<small>global key · Krumhansl r=${k.corr.toFixed(2)}</small></div>
+    <div class="s-body">
+      <b>${nBars} bars</b> (${CHD.mid.timeSig.num}/${CHD.mid.timeSig.den}, ${CHD.mid.bpm} BPM), <b>${A.segs.length} chords</b> read — about ${hr.toFixed(1)} per bar (harmonic rhythm).
+      ${modeNote}<b>${cons}%</b> of the melody lands on chord tones (the rest is non-chord ornament).
+      <div style="margin-top:10px">Key motion: ${modLine}</div>
+    </div></div>`;
+}
+
+function drawRoll(){
+  const cv=$('roll'); const dpr=window.devicePixelRatio||1, W=cv.clientWidth||900, H=+cv.getAttribute('height')||320;
+  cv.width=W*dpr; cv.height=H*dpr; const g=cv.getContext('2d'); g.scale(dpr,dpr); g.clearRect(0,0,W,H);
+  const mel=A.mel, chd=A.chd, tEnd=A.tEnd;
+  const allMidi=mel.map(n=>n.midi).concat(chd.map(n=>n.midi));
+  const lo=Math.floor(Math.min(...allMidi))-1, hi=Math.ceil(Math.max(...allMidi))+1;
+  const padL=44, padB=52, padT=10;
+  const x=t=>padL+(t/tEnd)*(W-padL-8);
+  const y=m=>padT+(1-(m-lo)/(hi-lo))*(H-padT-padB);
+  // chord spans (background)
+  A.segs.forEach((s,si)=>{
+    const col=si%2?'rgba(90,168,156,.06)':'rgba(90,168,156,.13)';
+    g.fillStyle=col; g.fillRect(x(s.t0),padT,Math.max(1,x(s.t1)-x(s.t0)),H-padT-padB);
+    g.strokeStyle='rgba(90,168,156,.24)'; g.beginPath(); g.moveTo(x(s.t0),padT); g.lineTo(x(s.t0),H-padB); g.stroke();
+  });
+  // chord notes (faint)
+  g.fillStyle='rgba(201,154,74,.34)';
+  chd.forEach(n=>{ const xx=x(n.t),ww=Math.max(2,x(n.t+n.dur)-x(n.t)),yy=y(n.midi); g.fillRect(xx,yy-3,ww,6); });
+  // octave gridlines
+  g.font='9px "Fragment Mono",monospace';
+  for(let m=Math.ceil(lo);m<=hi;m++){ if(m%12===0){ g.strokeStyle='#2c2718'; g.beginPath(); g.moveTo(padL,y(m)); g.lineTo(W-8,y(m)); g.stroke(); g.fillStyle='#786f58'; g.fillText(midiToName(m),6,y(m)+3); } }
+  // melody notes colored by vertical classification
+  A.vert.forEach(v=>{ const n=v.note; let col='#5aa89c';
+    if(v.tension) col='#d15c46'; else if(!v.chordTone && v.cat!=='—') col='#c99a4a';
+    const xx=x(n.t),ww=Math.max(3,x(n.t+n.dur)-x(n.t)),yy=y(n.midi);
+    g.fillStyle=col; g.globalAlpha=.95; g.fillRect(xx,yy-5,ww,10); g.globalAlpha=1;
+  });
+  // axes
+  g.strokeStyle='#4b4229'; g.beginPath(); g.moveTo(padL,H-padB); g.lineTo(W-8,H-padB); g.stroke();
+  g.fillStyle='#786f58'; g.font='9px "Fragment Mono",monospace';
+  for(let s=0;s<=tEnd;s+=Math.max(1,Math.round(tEnd/8))) g.fillText(s+'s',x(s),H-40);
+  // chord labels row
+  A.segs.forEach(s=>{ const cx=x((s.t0+s.t1)/2); const fnCol=s.fn==='T'?'#5aa89c':s.fn==='S'?'#c99a4a':s.fn==='D'?'#d15c46':'#786f58';
+    g.fillStyle='#ece5d3'; g.font='600 12px "Fraunces",serif'; g.textAlign='center'; g.fillText(s.name,cx,H-24);
+    g.fillStyle=fnCol; g.font='9px "Fragment Mono",monospace'; g.fillText(s.rom.replace(/<[^>]+>/g,'')+' · '+s.fn,cx,H-11);
+    g.textAlign='left';
+  });
+}
+
+function drawProg(){
+  const segs=A.segs;
+  if(!segs.length){ $('progOut').innerHTML='<div class="empty">No chords found.</div>'; return; }
+  let html='<div class="progrow">';
+  segs.forEach((s,i)=>{
+    if(i>0 && s.cadIn){ html+=`<span class="cp-arrow">→<span class="cad">${s.cadIn.split(' ')[0]}</span></span>`; }
+    else if(i>0){ html+='<span class="cp-arrow">→</span>'; }
+    html+=`<div class="chordpill fn-${s.fn}${s.flag?' borrowed':''}">
+      ${s.flag?`<span class="cp-flag">${s.flag}</span>`:''}
+      <div class="cp-name">${s.name}</div>
+      <div class="cp-rom">${s.rom}</div>
+      <div class="cp-fn">${s.fn==='T'?'tonic':s.fn==='S'?'subdom.':s.fn==='D'?'dominant':'—'} · ${fmtT(s.t0)}</div>
+    </div>`;
+  });
+  html+='</div>';
+  // roman string
+  const romStr=segs.map(s=>s.rom.replace(/<[^>]+>/g,'')).join(' – ');
+  html+=`<div class="pat" style="margin-top:16px"><b>Roman:</b> ${romStr}</div>`;
+  // pattern recognition
+  const pat=recognizePattern(segs,A.globalKey);
+  if(pat) html+=`<div class="pat"><b>Recognized:</b> ${pat}</div>`;
+  // cadence list
+  const cads=segs.filter(s=>s.cadIn).map(s=>`${fmtT(s.t0)} — ${s.cadIn}`);
+  if(cads.length) html+=`<span class="fieldlabel" style="margin-top:16px">Cadences</span><div style="margin-top:6px">${cads.map(c=>`<span class="chip bad">${c}</span>`).join('')}</div>`;
+  $('progOut').innerHTML=html;
+}
+function recognizePattern(segs,key){
+  const s=segs.map(x=>x.semi);
+  const has=(arr)=>{ for(let i=0;i+arr.length<=s.length;i++){ let ok=true; for(let j=0;j<arr.length;j++) if(s[i+j]!==arr[j]){ok=false;break;} if(ok) return true; } return false; };
+  const out=[];
+  if(has([0,9,5,7])) out.push('I–vi–IV–V (50s / doo-wop loop)');
+  if(has([0,7,9,5])) out.push('I–V–vi–IV (the pop “axis” four)');
+  if(has([9,5,0,7])) out.push('vi–IV–I–V');
+  if(has([0,8,10]) || has([0,10,8])) out.push('i–♭VI–♭VII (minor epic / darkwave loop)');
+  if(has([2,7,0]) || has([2,7])) out.push('ii–V(–I) (jazz cadence cell)');
+  if(has([5,7,0])) out.push('IV–V–I (full close)');
+  if(has([0,5,7]) && key.mode==='major') out.push('I–IV–V (three-chord backbone)');
+  if(has([10,0]) && key.mode==='minor') out.push('♭VII–i (mixolydian / aeolian close)');
+  return out.length?out.join(' · '):null;
+}
+
+function drawKeys(){
+  const k=A.globalKey, md=A.globalMode, lk=A.lk;
+  let html=`<div class="two">
+    <div>
+      <span class="fieldlabel" style="margin-bottom:8px">Global</span>
+      <div class="klist"><div class="krow"><span class="kt">key</span><span class="kk">${k.name}</span><span class="dim mono">r=${k.corr.toFixed(2)}</span></div>
+      <div class="krow"><span class="kt">best-fit mode</span><span class="kk">${pcName(k.tonic)} ${md.name}</span><span class="dim mono">r=${md.score.toFixed(2)}</span></div></div>
+      <div class="note" style="margin-top:10px">${modeExplain(md,k)}</div>
+    </div>
+    <div>
+      <span class="fieldlabel" style="margin-bottom:8px">Local key regions</span>`;
+  if(lk.regions.length<=1){ html+=`<div class="note" style="margin-top:6px">One tonal centre throughout — no modulation. Chords outside the key are passing colour (borrowed / secondary), not a lasting key change.</div>`; }
+  else {
+    html+='<div class="klist">';
+    lk.regions.forEach((r,i)=>{ const mod=i>0 && (r.key.tonic!==lk.regions[i-1].key.tonic||r.key.mode!==lk.regions[i-1].key.mode);
+      html+=`<div class="krow ${mod?'mod':''}"><span class="kt">${fmtT(r.t0)}–${fmtT(r.t1)}</span><span class="kk">${r.key.name}</span>${mod?'<span class="chip warn">modulation</span>':''}</div>`; });
+    html+='</div>';
+  }
+  html+='</div></div>';
+  // borrowed / secondary events from progression
+  const events=A.segs.filter(s=>s.flag).map(s=>`<span class="chip warn">${fmtT(s.t0)} · ${s.name} (${s.flag})</span>`);
+  if(events.length) html+=`<span class="fieldlabel" style="margin-top:16px">Chromatic / borrowed events</span><div style="margin-top:6px">${events.join('')}</div>`;
+  $('keyOut').innerHTML=html;
+}
+function modeExplain(md,k){
+  if(md.name.indexOf('Ionian')>=0) return 'The plain major diatonic field.';
+  if(md.name.indexOf('Aeolian')>=0) return 'The plain natural-minor diatonic field.';
+  const tips={'Dorian':'minor but with a <b>natural 6th</b> — brighter, a folk/rock minor','Phrygian':'the <b>♭2</b> gives a Spanish / dark tension','Lydian':'the <b>♯4</b> makes a dreamy, floating major','Mixolydian':'major but with a <b>♭7</b> — bluesy, a rock close','Locrian':'<b>♭2 and ♭5</b> — unstable, rare'};
+  for(const key in tips) if(md.name.indexOf(key)>=0) return pcName(k.tonic)+' '+md.name+': '+tips[key]+'.';
+  return '';
+}
+
+function drawVert(){
+  const vert=A.vert;
+  const ct=vert.filter(v=>v.chordTone).length;
+  const nctList=vert.filter(v=>!v.chordTone && v.cat!=='—');
+  const cats={}; nctList.forEach(v=>{ const c=v.cat.split(' ')[0]; cats[c]=(cats[c]||0)+1; });
+  const tension=vert.filter(v=>v.tension);
+  const strongDiss=vert.filter(v=>v.tension && v.strong);
+  let html=`<div class="metrics" style="margin-bottom:16px">
+    <div class="metric"><div class="k">chord tones</div><div class="v">${ct}<small>/${vert.length} notes</small></div></div>
+    <div class="metric"><div class="k">non-chord tones</div><div class="v">${nctList.length}<small> NCT</small></div></div>
+    <div class="metric"><div class="k">tension (m2/tt)</div><div class="v">${tension.length}<small> · ${strongDiss.length} on strong beat</small></div></div>
+    <div class="metric"><div class="k">consonance</div><div class="v">${Math.round(100*ct/(vert.length||1))}%</div></div>
+  </div>`;
+  // NCT type chips
+  html+='<div style="margin-bottom:12px">'+Object.keys(cats).sort((a,b)=>cats[b]-cats[a]).map(c=>`<span class="chip warn">${c} ×${cats[c]}</span>`).join('')+'</div>';
+  // tendency-tone resolutions (leading tone -> tonic, 4 -> 3)
+  const resolutions=findResolutions(A.mel,A.lk,A.globalKey);
+  if(resolutions.length) html+=`<div class="note" style="margin-bottom:12px"><b>Tendency-tone resolutions:</b> ${resolutions.map(r=>`<span class="chip on">${r}</span>`).join(' ')}</div>`;
+  // detail table (cap rows)
+  html+='<div class="tablescroll"><table class="tbl"><thead><tr><th>time</th><th>note</th><th>chord</th><th>degree</th><th>role</th><th>notes</th></tr></thead><tbody>';
+  const rows=vert.slice(0,60);
+  rows.forEach(v=>{ const cls=v.tension?'t-tension':v.chordTone?'t-ct':'t-nct';
+    html+=`<tr><td class="mono dim">${fmtT(v.note.t)}</td><td class="mono">${midiToName(v.note.midi)}</td><td class="mono">${v.seg?v.seg.name:'—'}</td><td class="mono">${v.degree||'—'}</td><td class="${cls}">${v.cat}</td><td class="muted">${v.detail}</td></tr>`; });
+  html+='</tbody></table></div>';
+  if(vert.length>60) html+=`<div class="note" style="margin-top:8px">Showing the first 60 of ${vert.length} notes.</div>`;
+  $('vertOut').innerHTML=html;
+}
+function findResolutions(mel,lk,gk){
+  const out=[]; const seen={};
+  for(let i=1;i<mel.length;i++){ const key=keyAtTime(lk,mel[i].t,gk);
+    const prevSemi=((pcOf(mel[i-1].midi)-key.tonic)%12+12)%12, curSemi=((pcOf(mel[i].midi)-key.tonic)%12+12)%12;
+    const di=Math.round(mel[i].midi)-Math.round(mel[i-1].midi);
+    if(prevSemi===11 && curSemi===0 && di>0 && di<=2 && !seen.lt){ out.push('7→1 (leading tone → tonic)'); seen.lt=1; }
+    if(prevSemi===5 && curSemi===4 && di<0 && !seen.f3){ out.push('4→3 (tendency resolution)'); seen.f3=1; }
+    if(prevSemi===1 && curSemi===0 && !seen.n2){ out.push('♭2→1 (Phrygian pull)'); seen.n2=1; }
+  }
+  return out;
+}
+
+function drawMel(){
+  const p=A.prof;
+  $('melMetrics').innerHTML=`
+    <div class="metric"><div class="k">notes</div><div class="v">${p.n}</div></div>
+    <div class="metric"><div class="k">range</div><div class="v">${p.range}<small> semitones</small></div></div>
+    <div class="metric"><div class="k">step / leap</div><div class="v">${Math.round(p.stepRatio*100)}%<small> / ${Math.round(p.leapRatio*100)}%</small></div></div>
+    <div class="metric"><div class="k">direction change</div><div class="v">${Math.round(p.dirRate*100)}%</div></div>
+    <div class="metric"><div class="k">largest leap</div><div class="v">${p.largest}<small> semitones</small></div></div>
+    <div class="metric"><div class="k">repeats (0 int.)</div><div class="v">${Math.round(p.repRatio*100)}%</div></div>`;
+  // interval hist
+  const ivH=p.ivH; const max=Math.max(1,...Object.values(ivH));
+  let hh=''; for(let k=-12;k<=12;k++){ const v=ivH[k]||0; const h=v/max*100; hh+=`<div class="b ${k===0?'zero':''}" style="height:${Math.max(2,h)}%" title="${k} semitones: ${v}"><span>${k===0||k===7||k===-7||k===12||k===-12||k===5||k===-5?k:''}</span></div>`; }
+  $('ivHist').innerHTML=hh;
+  // scale-degree usage
+  const k=A.globalKey; const w=new Array(12).fill(0);
+  A.mel.forEach(n=>w[((pcOf(n.midi)-k.tonic)%12+12)%12]+=n.dur);
+  const tot=w.reduce((a,b)=>a+b,0)||1;
+  const stable=new Set([0,4,7]), tend=new Set([2,5,9,11]);
+  if(k.mode==='minor'){ stable.clear();[0,3,7].forEach(x=>stable.add(x)); }
+  let dh='<div class="deg-line">';
+  for(let s=0;s<12;s++){ if(w[s]<tot*0.005) continue; const cls=stable.has(s)?'stable':(k.scaleSet.has((k.tonic+s)%12)?(tend.has(s)?'tend':''):'chrom');
+    dh+=`<div class="deg ${cls}">${degLabel(s)}<b>${Math.round(100*w[s]/tot)}%</b></div>`; }
+  dh+='</div><div class="note" style="margin-top:12px"><span class="chip on">stable (1/3/5)</span> <span class="chip warn">tendency tone</span> <span class="chip bad">chromatic (outside key)</span></div>';
+  $('degOut').innerHTML=dh;
+}
+
+function drawEnergyPanel(){
+  const E=A.energy; const cv=$('energyRoll');
+  const dpr=window.devicePixelRatio||1, W=cv.clientWidth||900, H=+cv.getAttribute('height')||190;
+  cv.width=W*dpr; cv.height=H*dpr; const g=cv.getContext('2d'); g.scale(dpr,dpr); g.clearRect(0,0,W,H);
+  if(!E){ $('energyOut').innerHTML='<div class="empty">Not enough melody to plot.</div>'; return; }
+  const padL=8,padR=8,padT=10,padB=20;
+  const x=t=>padL+((t-E.t0)/E.span)*(W-padL-padR);
+  // density line (teal)
+  g.strokeStyle='#5aa89c'; g.lineWidth=1.5; g.beginPath();
+  E.energy.forEach((e,i)=>{ const yy=padT+(1-e.d/E.dMax)*(H-padT-padB); if(i)g.lineTo(x(e.t),yy); else g.moveTo(x(e.t),yy); }); g.stroke();
+  // pitch line (ochre)
+  const pR=Math.max(1,E.hiM-E.loM);
+  g.strokeStyle='#c99a4a'; g.beginPath();
+  E.energy.forEach((e,i)=>{ const yy=padT+(1-(e.p-E.loM)/pR)*(H-padT-padB); if(i)g.lineTo(x(e.t),yy); else g.moveTo(x(e.t),yy); }); g.stroke();
+  // peak
+  g.strokeStyle='#d15c46'; g.setLineDash([3,3]); g.beginPath(); g.moveTo(x(E.peakT),padT); g.lineTo(x(E.peakT),H-padB); g.stroke(); g.setLineDash([]);
+  g.fillStyle='#786f58'; g.font='9px "Fragment Mono",monospace';
+  for(let s=0;s<=E.span;s+=Math.max(1,Math.round(E.span/8))) g.fillText(s+'s',x(E.t0+s),H-6);
+  const loc=E.peakFrac<0.4?'early':E.peakFrac<0.7?'in the middle':'late';
+  $('energyOut').innerHTML=`<div class="note">The energy peak lands <b>${loc}</b> (at ${Math.round(E.peakFrac*100)}% of the piece, ${fmtT(E.peakT)}). The highest note is at ${Math.round(E.hiFrac*100)}% (${fmtT(E.hiT)}). Range ${midiToName(E.loM)}–${midiToName(E.hiM)}.</div>`;
+}
+</script>
+</body>
+</html>

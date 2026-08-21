@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>What’s stored · Harmonic Analysis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400&family=Spectral:ital,wght@0,400;0,500;0,600&family=Fragment+Mono&display=swap" rel="stylesheet">
+<style>
+:root{--paper:#16130d;--ink:#ece5d3;--muted:#a89b80;--faint:#786f58;--rule:#37311f;--tonic:#5aa89c;
+  --disp:'Fraunces',Georgia,serif;--body:'Spectral',Georgia,serif;--mono:'Fragment Mono',monospace;}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--body);-webkit-font-smoothing:antialiased;line-height:1.65}
+.wrap{max-width:680px;margin:0 auto;padding:44px 26px 90px}
+h1{font-family:var(--disp);font-weight:500;font-size:32px;margin:0 0 4px;letter-spacing:-.01em}
+h1 em{font-style:italic;font-weight:400}
+h2{font-family:var(--disp);font-weight:500;font-size:19px;margin:34px 0 8px}
+a{color:var(--tonic)}
+p,li{font-size:15px;color:var(--ink)}
+.muted{color:var(--muted)}
+.kicker{font-family:var(--mono);font-size:11px;color:var(--faint);letter-spacing:.02em}
+hr{border:none;border-top:1px solid var(--rule);margin:22px 0}
+code{font-family:var(--mono);font-size:13px;color:var(--muted)}
+ul{padding-left:18px}
+li{margin:5px 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="kicker">HARMONIC ANALYSIS</div>
+  <h1>What’s <em>stored</em></h1>
+  <p class="muted">Plain-language summary of what this tool keeps and why. Last updated on deployment.</p>
+  <hr>
+
+  <h2>What happens in your browser</h2>
+  <p>The two MIDI files you drop are read and analysed entirely on your own device. The files themselves are <strong>not uploaded</strong> anywhere.</p>
+
+  <h2>What is saved</h2>
+  <p>When the “keep an anonymous copy” box is ticked (it is on by default), a compact record of that analysis is saved to help improve the tool. It contains:</p>
+  <ul>
+    <li>the detected key, mode, chord progression, cadences and local-key regions;</li>
+    <li>melody-vs-chord statistics and the melodic profile;</li>
+    <li>the note data (pitch, start, length) of the melody and chord lines;</li>
+    <li>the file names you gave the MIDIs, and a timestamp.</li>
+  </ul>
+  <p>No account is created and no personal details are requested. No name, email, IP address or location is stored with the record.</p>
+
+  <h2>How to not be included</h2>
+  <p>Untick the “keep an anonymous copy” box before pressing <em>Analyze</em>. The analysis still runs and is shown to you exactly the same — nothing is saved.</p>
+
+  <h2>A note on file names</h2>
+  <p>If you would rather not share what you called a file, rename it to something neutral before dropping it in, or untick the box above.</p>
+
+  <hr>
+  <p class="muted">Questions or a removal request? <span class="muted">Add your contact address here before publishing.</span></p>
+  <p><a href="index.html">← Back to the analyzer</a></p>
+</div>
+</body>
+</html>
