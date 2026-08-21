@@ -645,7 +645,7 @@ async function loadMidi(file,which){
       $('dropChd').classList.add('loaded'); $('stChd').textContent=file.name+' · '+mid.notes.length+' notes · '+mid.timeSig.num+'/'+mid.timeSig.den; }
     $('analyze').disabled=!(MEL&&CHD);
     $('status').textContent=(MEL&&CHD)?'both files ready — hit Analyze':'waiting for the other MIDI';
-  }catch(err){ $('status').textContent=file.name+' could not be read: '+err.message; }
+  }catch(err){ const msg=/bounds of the DataView/.test(err.message)?'corrupt or truncated MIDI file':err.message; $('status').textContent=file.name+' could not be read: '+msg; }
 }
 $('analyze').addEventListener('click',analyze);
 

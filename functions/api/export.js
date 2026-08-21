@@ -38,7 +38,10 @@ export async function onRequestGet({ request, env }) {
   if (format === 'csv') {
     const cols = ['id', 'created_at', 'mel_name', 'chd_name', 'key_name', 'mode_name', 'bars', 'bpm', 'chord_count', 'consonance'];
     const esc = (v) => {
-      const x = v == null ? '' : String(v);
+      let x = v == null ? '' : String(v);
+      // neutralize spreadsheet formula injection: filenames are attacker-controlled,
+      // so a value like =SUM()/+/-/@ would execute when the owner opens the CSV in Excel.
+      if (/^[=+\-@\t\r]/.test(x)) x = "'" + x;
       return /[",\n]/.test(x) ? '"' + x.replace(/"/g, '""') + '"' : x;
     };
     const lines = [cols.join(',')].concat((results || []).map((r) => cols.map((c) => esc(r[c])).join(',')));
