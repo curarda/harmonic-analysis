@@ -14,13 +14,14 @@ export async function onRequestPost({ request, env }) {
   try {
     if (!env.DB) return json({ error: 'storage not configured' }, 503);
 
-    // same-origin guard: block cross-site posting
+    // same-origin guard: require an Origin header that matches our host.
+    // Browsers always send Origin on POST; header-less bots/curl are rejected here.
+    // (Not a substitute for a rate-limit rule against a determined attacker — see README.)
     const origin = request.headers.get('origin');
-    if (origin) {
-      try {
-        if (new URL(origin).host !== request.headers.get('host')) return json({ error: 'bad origin' }, 403);
-      } catch { return json({ error: 'bad origin' }, 403); }
-    }
+    const host = request.headers.get('host');
+    let originOk = false;
+    try { originOk = !!origin && new URL(origin).host === host; } catch { originOk = false; }
+    if (!originOk) return json({ error: 'bad origin' }, 403);
 
     // size guard (header first, then actual)
     const clen = Number(request.headers.get('content-length') || 0);

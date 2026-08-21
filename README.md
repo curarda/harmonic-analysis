@@ -145,13 +145,15 @@ npx wrangler pages dev .
 
 - [x] `index.html` içinde API anahtarı / e-posta / kişisel veri **yok** (tarandı, temiz).
 - [x] `ADMIN_TOKEN` şifreli sır — koda ve git'e **girmiyor** (`.gitignore`).
-- [x] `/api/collect` **same-origin** kontrolü + **boyut limiti** (~600 KB) uygular.
-- [x] `/api/export` yalnızca doğru token ile yanıt verir (401 aksi halde).
+- [x] `/api/collect` **Origin zorunlu + eşleşmeli** (Origin'siz bot/curl → 403) + **boyut limiti** (~600 KB).
+- [x] `/api/export` yalnızca doğru token ile yanıt verir (401 aksi halde), sabit-zamanlı karşılaştırma.
+- [x] CSV export'ta **formül enjeksiyonu** etkisiz (`=+-@` ile başlayan hücreler `'` önekli).
 - [ ] **`privacy.html`'e bir iletişim adresi ekle** (kaldırma talepleri için) — yayından önce.
 - [ ] **Gizlilik/rıza:** Otomatik toplama seçtin. Sitedeki bildirim + "kopya tutma" kutusu
       bu yüzden var — **onları kaldırma.** AB'li ziyaretçin olacaksa açık rıza (KVKK/GDPR)
       için kutuyu varsayılan *kapalı* yapmayı düşün (index.html'de `id="optSave"` → `checked`'i kaldır).
-- [ ] (Opsiyonel) Bot/spam'a karşı Cloudflare **Turnstile** veya panodan **Rate limiting** ekle.
+- [ ] (Önerilen, ~1 dk) Kararlı bir saldırgana karşı **Rate limiting kuralı**: Pano → harmonic-analysis
+      → **Security → WAF → Rate limiting rules** → *Create* → yol `/api/collect`, IP başına ör. **dk'da 20 istek** → Block. (Origin/boyut kontrolü naif spam'i keser; asıl hız sınırı budur.)
 - [ ] Token'ı sızdırırsan: yeni `openssl rand -hex 24` üret, `pages secret put ADMIN_TOKEN` ile değiştir.
 
 ---
