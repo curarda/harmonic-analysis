@@ -11,4 +11,4 @@ compatibility_date = "2024-11-01"
 [[d1_databases]]
 binding = "DB"
 database_name = "harmonic-analysis-db"
-database_id = "PASTE_YOUR_D1_DATABASE_ID_HERE"
+database_id = "7fa47fee-9caa-4e98-a48e-b2ab2d4fa184"
