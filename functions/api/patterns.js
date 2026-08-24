@@ -23,8 +23,19 @@ export async function onRequestGet({ request, env }) {
   const usedForms = new Set(), usedModes = new Set(), usedCadences = new Set(), usedKeys = new Set();
   const shapeTotals = {}; let leapSum = 0, stepSum = 0, dirSum = 0, profN = 0, withStructure = 0;
   let loM = 127, hiM = 0, bpmMin = 999, bpmMax = 0; const meters = new Set();
+  let consSum = 0, consN = 0; const songs = [];
 
   for (const p of rows) {
+    // per-song chord-tone rate (% of melody notes that are a tone of the chord under them)
+    const cons = p.vertical && typeof p.vertical.consonancePct === 'number' ? p.vertical.consonancePct : null;
+    if (cons != null) { consSum += cons; consN++; }
+    songs.push({
+      name: p.melName || p.chdName || '(untitled)',
+      ts: p.ts || null,
+      key: (p.key && p.key.name) || null,
+      form: (p.structure && p.structure.mForm) || null,
+      chordTonePct: cons,
+    });
     if (p.structure) {
       withStructure++;
       if (p.structure.mForm) usedForms.add(normForm(p.structure.mForm));
@@ -72,8 +83,10 @@ export async function onRequestGet({ request, env }) {
       tempo: bpmMax ? { min: bpmMin, max: bpmMax } : null,
       metres: [...meters],
       avg: { leapRatio: +avgLeap.toFixed(3), stepRatio: +avgStep.toFixed(3), dirRate: +avgDir.toFixed(3) },
+      avgChordTonePct: consN ? Math.round(consSum / consN) : null,
     },
     gaps,
     suggestions: S,
+    songs, // per-song chord-tone % (newest first)
   });
 }

@@ -45,6 +45,14 @@ ul.sugg li b{color:var(--ink);font-weight:600}
 .kv .k{color:var(--muted)}
 .err{color:var(--dominant);font-size:14px;margin-top:12px}
 .big{font-family:var(--disp);font-weight:500;font-size:15px}
+table.stbl{width:100%;border-collapse:collapse;font-size:13.5px}
+table.stbl th{text-align:left;font-family:var(--mono);font-size:10px;color:var(--muted);padding:9px 14px;border-bottom:1.5px solid var(--ink);font-weight:400}
+table.stbl td{padding:9px 14px;border-bottom:1px solid var(--rule);vertical-align:middle}
+table.stbl tr:last-child td{border-bottom:none}
+.mono{font-family:var(--mono)}.dim{color:var(--faint)}
+.mini{display:inline-block;width:84px;height:7px;background:var(--inset);border:1px solid var(--rule2);border-radius:2px;overflow:hidden;vertical-align:middle;margin-left:8px}
+.mini>i{display:block;height:100%;background:var(--tonic)}
+.tablescroll{overflow-x:auto}
 </style>
 </head>
 <body>
@@ -77,6 +85,10 @@ ul.sugg li b{color:var(--ink);font-weight:600}
     <div class="card">
       <div class="grid" id="stats"></div>
     </div>
+
+    <h2>Chord-tone % per song</h2>
+    <div class="note" style="margin:-4px 0 8px">How much of each melody sits on a tone of the chord underneath it (root / 3rd / 5th / 7th). Newest first.</div>
+    <div class="card" style="padding:0"><div class="tablescroll" id="songs"></div></div>
   </div>
 
   <p class="note" style="margin-top:34px"><a href="index.html">← Back to the analyzer</a></p>
@@ -86,6 +98,7 @@ ul.sugg li b{color:var(--ink);font-weight:600}
 "use strict";
 const $=id=>document.getElementById(id);
 function md(s){ return (s||'').replace(/\*\*(.+?)\*\*/g,'<b>$1</b>'); }
+function esc(s){ return (s==null?'':String(s)).replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c])); }
 function chips(el, items, cls){ el.innerHTML = items.length ? items.map(x=>`<span class="chip ${cls||'on'}">${x}</span>`).join('') : '<span class="chip">—</span>'; }
 async function load(){
   const token=$('tok').value.trim(); if(!token){ return; }
@@ -126,7 +139,19 @@ function render(d){
   if(u.range) kv('Range', u.range.low+'–'+u.range.high+' (MIDI)');
   if(u.tempo) kv('Tempo', u.tempo.min===u.tempo.max?u.tempo.min+' BPM':u.tempo.min+'–'+u.tempo.max+' BPM');
   if(u.metres&&u.metres.length) kv('Metres', u.metres.join(', '));
+  if(u.avgChordTonePct!=null) kv('Avg chord-tone %', u.avgChordTonePct+'%');
   if(u.avg){ kv('Avg steps', Math.round(u.avg.stepRatio*100)+'%'); kv('Avg leaps', Math.round(u.avg.leapRatio*100)+'%'); kv('Avg direction changes', Math.round(u.avg.dirRate*100)+'%'); }
+
+  // per-song chord-tone %
+  const songs=d.songs||[];
+  if(!songs.length){ $('songs').innerHTML='<div class="note" style="padding:16px">No songs yet.</div>'; }
+  else{
+    let h='<table class="stbl"><thead><tr><th>song</th><th>key</th><th>form</th><th>chord-tone %</th></tr></thead><tbody>';
+    songs.forEach(s=>{ const pct=s.chordTonePct;
+      const bar=pct==null?'':`<div class="mini"><i style="width:${Math.max(0,Math.min(100,pct))}%"></i></div>`;
+      h+=`<tr><td>${esc(s.name)}</td><td class="mono dim">${esc(s.key)||'—'}</td><td class="mono">${esc(s.form)||'—'}</td><td class="mono">${pct==null?'—':pct+'%'}${bar}</td></tr>`; });
+    h+='</tbody></table>'; $('songs').innerHTML=h;
+  }
 }
 $('go').addEventListener('click',load);
 $('tok').addEventListener('keydown',e=>{ if(e.key==='Enter') load(); });
