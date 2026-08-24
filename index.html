@@ -134,6 +134,8 @@ canvas{display:block;width:100%;border:1px solid var(--rule);border-radius:2px;b
 @media(max-width:720px){.two{grid-template-columns:1fr}}
 .tablescroll{overflow-x:auto}
 .flexbtn{display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+.formline{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.formchip{font-family:var(--disp);font-weight:500;font-size:22px;line-height:1;min-width:40px;text-align:center;padding:9px 10px;border:1px solid var(--rule2);border-radius:2px;background:var(--inset)}
 .fieldlabel{font-family:var(--mono);font-size:10.5px;color:var(--muted);letter-spacing:.02em;display:block}
 label.opt{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--muted)}
 label.opt input{accent-color:var(--dominant)}
@@ -238,6 +240,13 @@ label.opt input{accent-color:var(--dominant)}
       <span><i style="background:var(--dominant)"></i>energy peak</span>
     </div>
     <div id="energyOut" style="margin-top:12px"></div>
+  </div>
+
+  <div class="panel">
+    <h2><span class="n">IX</span>Structure &amp; form</h2>
+    <p class="note">The melody is split into phrases at rests and each phrase is labelled by similarity — <b>a</b>, <b>b</b>, <b>c</b>… with a <b>′</b> for a variation of the same idea. The melodic form and the harmonic form (how the chords repeat) sit side by side, and each phrase gets its contour shape.</p>
+    <div id="structOut"></div>
+    <p class="note" style="margin-top:14px">Want to see what you <em>haven't</em> tried yet across your saved songs? <a href="catalog.html" style="color:var(--tonic)">Open your catalog →</a></p>
   </div>
 
 </div>
@@ -622,6 +631,65 @@ function computeEnergy(notes){
   return {t0,tEnd,span,energy,dMax,loM,hiM,peakT:peak.t,peakFrac:(peak.t-t0)/span,hiT:notes[hiIdx].t,hiFrac:(notes[hiIdx].t-t0)/span};
 }
 
+/* ============================================================ STRUCTURE / FORM === */
+const SHAPE_LABEL={ascending:'ascending ↗',descending:'descending ↘',arch:'arch ∧',valley:'valley ∨',flat:'flat →',wavy:'wavy ∿',static:'static'};
+function lev2(a,b){ const m=a.length,n=b.length; if(!m)return n; if(!n)return m; const d=Array.from({length:m+1},(_,i)=>[i,...Array(n).fill(0)]); for(let j=0;j<=n;j++)d[0][j]=j; for(let i=1;i<=m;i++)for(let j=1;j<=n;j++) d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+(a[i-1]===b[j-1]?0:1)); return d[m][n]; }
+function phraseInts(notes){ const p=notes.map(n=>Math.round(n.midi)); const iv=[]; for(let i=1;i<p.length;i++) iv.push(p[i]-p[i-1]); return iv; }
+function contourStr(notes){ return phraseInts(notes).map(v=>v>0?'U':v<0?'D':'S').join(''); }
+function segmentPhrases(mel, grid){
+  if(!mel.length) return [];
+  const gapTh=Math.max(0.3, grid.spb*0.85);
+  const phr=[]; let cur=[mel[0]];
+  for(let i=1;i<mel.length;i++){ const gap=mel[i].t-(mel[i-1].t+mel[i-1].dur); if(gap>=gapTh){ phr.push(cur); cur=[mel[i]]; } else cur.push(mel[i]); }
+  phr.push(cur);
+  if(phr.length<2 && mel.length>=6){ // legato: fall back to equal bar-groups
+    const tEnd=mel[mel.length-1].t+mel[mel.length-1].dur, bars=Math.max(1,Math.round(tEnd/grid.barDur));
+    const groups=bars>=8?4:2, cut=tEnd/groups, g=Array.from({length:groups},()=>[]);
+    mel.forEach(n=>{ g[Math.min(groups-1,Math.floor(n.t/cut))].push(n); });
+    return g.filter(x=>x.length);
+  }
+  return phr.filter(x=>x.length);
+}
+function phraseSim(a,b){
+  const ca=contourStr(a), cb=contourStr(b), mx=Math.max(ca.length,cb.length)||1;
+  const cSim=1-lev2(ca,cb)/mx;
+  const h=notes=>{const m={};phraseInts(notes).forEach(v=>{const k=Math.max(-7,Math.min(7,v));m[k]=(m[k]||0)+1;});return m;};
+  const ha=h(a),hb=h(b), keys=new Set([...Object.keys(ha),...Object.keys(hb)]); let d=0,na=0,nb=0;
+  keys.forEach(k=>{const x=ha[k]||0,y=hb[k]||0;d+=x*y;na+=x*x;nb+=y*y;}); const iSim=(na&&nb)?d/Math.sqrt(na*nb):0;
+  const lSim=1-Math.abs(a.length-b.length)/Math.max(a.length,b.length,1);
+  return 0.5*cSim+0.4*iSim+0.1*lSim;
+}
+function contourShape(notes){
+  const p=notes.map(n=>Math.round(n.midi)); if(p.length<2) return 'static';
+  const net=p[p.length-1]-p[0], lo=Math.min(...p), hi=Math.max(...p), rng=hi-lo, mid=(p.length-1)/2;
+  const hiIdx=p.indexOf(hi), loIdx=p.indexOf(lo);
+  if(rng<=2) return 'flat';
+  if(hiIdx>0&&hiIdx<p.length-1&&Math.abs(hiIdx-mid)<p.length*0.4&&p[0]<hi-1&&p[p.length-1]<hi-1) return 'arch';
+  if(loIdx>0&&loIdx<p.length-1&&Math.abs(loIdx-mid)<p.length*0.4&&p[0]>lo+1&&p[p.length-1]>lo+1) return 'valley';
+  if(net>=2) return 'ascending';
+  if(net<=-2) return 'descending';
+  return 'wavy';
+}
+function labelForms(items, simFn){
+  const reps=[], letters=[], ABC='abcdefgh';
+  items.forEach(it=>{ let best=-1,bi=-1; reps.forEach((r,i)=>{ const s=simFn(it,r.item); if(s>best){best=s;bi=i;} });
+    if(best>=0.82) letters.push(reps[bi].letter);
+    else if(best>=0.6) letters.push(reps[bi].letter+"′"); // prime = variation
+    else { const L=ABC[reps.length]||('z'+reps.length); reps.push({letter:L,item:it}); letters.push(L); } });
+  return {letters, form:letters.join(' ')};
+}
+function analyzeStructure(mel, segs, grid){
+  const phr=segmentPhrases(mel, grid); if(!phr.length) return null;
+  const mForm=labelForms(phr, phraseSim);
+  const phrases=phr.map((notes,i)=>({ t0:notes[0].t, t1:notes[notes.length-1].t+notes[notes.length-1].dur,
+    letter:mForm.letters[i], shape:contourShape(notes), n:notes.length }));
+  const cGroups=phrases.map(p=> segs.filter(s=>s.t0<p.t1-1e-3 && s.t1>p.t0+1e-3).map(s=>s.rom.replace(/<[^>]+>/g,'')) );
+  const romSim=(a,b)=>{ if(!a.length&&!b.length) return 1; const mx=Math.max(a.length,b.length)||1; return 1-lev2(a,b)/mx; };
+  const cForm=labelForms(cGroups, romSim);
+  const shapeCounts={}; phrases.forEach(p=>shapeCounts[p.shape]=(shapeCounts[p.shape]||0)+1);
+  return {phrases, mForm:mForm.form, cForm:cForm.form, cGroups, shapeCounts};
+}
+
 /* ============================================================ STATE / LOAD ======== */
 let MEL=null, CHD=null, A=null;
 function wireDrop(dropId,inputId,which){
@@ -673,10 +741,11 @@ function analyze(){
   detectCadences(segs);
   // vertical
   const vert=mel.map((n,i)=>classifyMelodyNote(i,mel,segs,grid,keyAtTime(lk,n.t,globalKey)));
-  // profile / energy
+  // profile / energy / structure
   const prof=melodyProfile(mel);
   const energy=computeEnergy(mel);
-  A={mel,chd,tEnd,grid,globalKey,globalMode,lk,segs,vert,prof,energy};
+  const structure=analyzeStructure(mel,segs,grid);
+  A={mel,chd,tEnd,grid,globalKey,globalMode,lk,segs,vert,prof,energy,structure};
   $('results').classList.remove('hidden');
   render();
   $('results').scrollIntoView({behavior:'smooth',block:'start'});
@@ -710,6 +779,7 @@ async function collectData(){
       vertical:{chordTones:ct,nct:nctList.length,tension:A.vert.filter(v=>v.tension).length,consonancePct:Math.round(100*ct/(A.vert.length||1)),nctTypes},
       profile:{n:A.prof.n,range:A.prof.range,stepRatio:+A.prof.stepRatio.toFixed(3),leapRatio:+A.prof.leapRatio.toFixed(3),dirRate:+A.prof.dirRate.toFixed(3),largest:A.prof.largest,repRatio:+A.prof.repRatio.toFixed(3)},
       energy:A.energy?{peakFrac:+A.energy.peakFrac.toFixed(3),hiFrac:+A.energy.hiFrac.toFixed(3),loM:A.energy.loM,hiM:A.energy.hiM}:null,
+      structure:A.structure?{mForm:A.structure.mForm,cForm:A.structure.cForm,shapes:A.structure.shapeCounts,phrases:A.structure.phrases.length}:null,
       raw:{mel:compact(A.mel),chd:compact(A.chd)}
     };
     await fetch('/api/collect',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),keepalive:true});
@@ -718,7 +788,20 @@ async function collectData(){
 
 /* ============================================================ RENDER ============== */
 function render(){
-  drawSummary(); drawRoll(); drawProg(); drawKeys(); drawVert(); drawMel(); drawEnergyPanel();
+  drawSummary(); drawRoll(); drawProg(); drawKeys(); drawVert(); drawMel(); drawEnergyPanel(); drawStructure();
+}
+function drawStructure(){
+  const S=A.structure;
+  if(!S||!S.phrases.length){ $('structOut').innerHTML='<div class="empty">Not enough melody to segment into phrases.</div>'; return; }
+  const chip=l=>`<span class="formchip">${l}</span>`;
+  let html=`<div class="two">
+    <div><span class="fieldlabel">Melodic form</span><div class="formline">${S.phrases.map(p=>chip(p.letter)).join('')}</div><div class="note" style="margin-top:6px">${S.phrases.length} phrases</div></div>
+    <div><span class="fieldlabel">Harmonic form</span><div class="formline">${S.cForm.split(' ').map(chip).join('')}</div><div class="note" style="margin-top:6px">how the chord groups repeat</div></div>
+  </div>`;
+  html+='<div class="tablescroll" style="margin-top:16px"><table class="tbl"><thead><tr><th>phrase</th><th>time</th><th>notes</th><th>contour</th><th>chords</th></tr></thead><tbody>';
+  S.phrases.forEach((p,i)=>{ html+=`<tr><td class="mono" style="font-size:15px;font-family:var(--disp)">${p.letter}</td><td class="mono dim">${fmtT(p.t0)}–${fmtT(p.t1)}</td><td class="mono">${p.n}</td><td>${SHAPE_LABEL[p.shape]||p.shape}</td><td class="mono dim">${(S.cGroups[i]||[]).join(' ')||'—'}</td></tr>`; });
+  html+='</tbody></table></div>';
+  $('structOut').innerHTML=html;
 }
 
 function drawSummary(){
