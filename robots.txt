@@ -1,6 +1,5 @@
 User-agent: *
 Allow: /
 Disallow: /api/
-Disallow: /catalog.html
 
-Sitemap: https://main.harmonic-analysis.pages.dev/sitemap.xml
+Sitemap: https://curarda.github.io/harmonic-analysis/sitemap.xml

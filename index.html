@@ -179,10 +179,6 @@ label.opt input{accent-color:var(--dominant)}
     <label class="opt"><input type="checkbox" id="optChdKey" checked> weight the chords more when finding the key</label>
     <span id="status" class="mono dim"></span>
   </div>
-  <p class="note" style="margin-top:16px">
-    <label class="opt" style="display:inline-flex"><input type="checkbox" id="optSave" checked> keep an anonymous copy of this analysis to improve the tool</label>
-    <span class="dim" style="display:block;margin-top:6px">Your MIDI files are read and analyzed in your browser. When the box above is ticked, a copy of the analysis and the note data is saved — no account, no personal details asked. <a href="privacy.html" style="color:var(--tonic)">What’s stored →</a></span>
-  </p>
 </div>
 
 <div id="results" class="hidden">
@@ -252,7 +248,6 @@ label.opt input{accent-color:var(--dominant)}
     <h2><span class="n">IX</span>Structure &amp; form</h2>
     <p class="note">The melody is split into phrases at rests and each phrase is labelled by similarity — <b>a</b>, <b>b</b>, <b>c</b>… with a <b>′</b> for a variation of the same idea. The melodic form and the harmonic form (how the chords repeat) sit side by side, and each phrase gets its contour shape.</p>
     <div id="structOut"></div>
-    <p class="note" style="margin-top:14px">Want to see what you <em>haven't</em> tried yet across your saved songs? <a href="catalog.html" style="color:var(--tonic)">Open your catalog →</a></p>
   </div>
 
 </div>
@@ -755,41 +750,6 @@ function analyze(){
   $('results').classList.remove('hidden');
   render();
   $('results').scrollIntoView({behavior:'smooth',block:'start'});
-  collectData();   // best-effort, fire-and-forget; never blocks the analysis
-}
-
-/* ============================================================ COLLECT (opt-in) ===
-   Posts a compact copy of the analysis to the owner's backend (Cloudflare Pages
-   Function → D1). No secrets live here — the DB binding and the admin token stay
-   server-side. Runs only over http(s), only when the "keep a copy" box is ticked,
-   and silently does nothing if the endpoint is absent or offline. */
-async function collectData(){
-  try{
-    if(location.protocol==='file:') return;                 // local preview: nothing to post to
-    const optSave=$('optSave'); if(optSave && !optSave.checked) return;
-    if(!A) return;
-    const compact=arr=>arr.map(n=>[+n.t.toFixed(3),+n.dur.toFixed(3),Math.round(n.midi)]);
-    const ct=A.vert.filter(v=>v.chordTone).length;
-    const nctList=A.vert.filter(v=>!v.chordTone && v.cat!=='—');
-    const nctTypes={}; nctList.forEach(v=>{ const c=v.cat.split(' ')[0]; nctTypes[c]=(nctTypes[c]||0)+1; });
-    const payload={
-      v:1, ts:Date.now(),
-      melName:(MEL&&MEL.file&&MEL.file.name)||null, chdName:(CHD&&CHD.file&&CHD.file.name)||null,
-      bpm:CHD.mid.bpm, timeSigNum:CHD.mid.timeSig.num, timeSigDen:CHD.mid.timeSig.den,
-      bars:Math.max(1,Math.round(A.tEnd/A.grid.barDur)),
-      key:{name:A.globalKey.name,tonic:A.globalKey.tonic,mode:A.globalKey.mode,corr:+A.globalKey.corr.toFixed(3)},
-      mode:{name:A.globalMode.name,score:+A.globalMode.score.toFixed(3)},
-      changed:A.lk.changed,
-      localKeys:A.lk.regions.map(r=>({t0:+r.t0.toFixed(2),t1:+r.t1.toFixed(2),name:r.key.name})),
-      chords:A.segs.map(s=>({t0:+s.t0.toFixed(2),t1:+s.t1.toFixed(2),name:s.name,rom:s.rom.replace(/<[^>]+>/g,''),fn:s.fn,flag:s.flag||'',cad:s.cadIn||''})),
-      vertical:{chordTones:ct,nct:nctList.length,tension:A.vert.filter(v=>v.tension).length,consonancePct:Math.round(100*ct/(A.vert.length||1)),nctTypes},
-      profile:{n:A.prof.n,range:A.prof.range,stepRatio:+A.prof.stepRatio.toFixed(3),leapRatio:+A.prof.leapRatio.toFixed(3),dirRate:+A.prof.dirRate.toFixed(3),largest:A.prof.largest,repRatio:+A.prof.repRatio.toFixed(3)},
-      energy:A.energy?{peakFrac:+A.energy.peakFrac.toFixed(3),hiFrac:+A.energy.hiFrac.toFixed(3),loM:A.energy.loM,hiM:A.energy.hiM}:null,
-      structure:A.structure?{mForm:A.structure.mForm,cForm:A.structure.cForm,shapes:A.structure.shapeCounts,phrases:A.structure.phrases.length}:null,
-      raw:{mel:compact(A.mel),chd:compact(A.chd)}
-    };
-    await fetch('/api/collect',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),keepalive:true});
-  }catch(e){ /* best-effort only — analysis already succeeded */ }
 }
 
 /* ============================================================ RENDER ============== */

@@ -1,6 +1,0 @@
-# Copy this file to ".dev.vars" for LOCAL testing only (it is git-ignored).
-# In production, set ADMIN_TOKEN as an encrypted secret in the Cloudflare
-# dashboard (Settings → Environment variables) — NOT in any committed file.
-#
-# Pick a long random value, e.g. the output of:  openssl rand -hex 24
-ADMIN_TOKEN=replace-with-a-long-random-string
