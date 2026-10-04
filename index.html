@@ -4,6 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Harmonic Analysis — free MIDI melody &amp; chord music-theory analyzer</title>
+<meta name="theme-color" content="#16130d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Harmonic Analysis">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
 <meta name="description" content="Drop a melody MIDI and a chords MIDI. Get functional harmony, the chord progression with roman numerals, key &amp; mode changes, cadences, and how the melody sits against the chords — vertical and horizontal, global and local. Free, in your browser.">
 <meta name="keywords" content="harmonic analysis, music theory analyzer, chord progression analyzer, roman numeral analysis, functional harmony, MIDI analysis, key detection, melody harmony analysis, cadence detection, chord MIDI, non-chord tones">
 <meta name="robots" content="index, follow">
@@ -1018,6 +1024,11 @@ function drawEnergyPanel(){
   for(let s=0;s<=E.span;s+=Math.max(1,Math.round(E.span/8))) g.fillText(s+'s',x(E.t0+s),H-6);
   const loc=E.peakFrac<0.4?'early':E.peakFrac<0.7?'in the middle':'late';
   $('energyOut').innerHTML=`<div class="note">The energy peak lands <b>${loc}</b> (at ${Math.round(E.peakFrac*100)}% of the piece, ${fmtT(E.peakT)}). The highest note is at ${Math.round(E.hiFrac*100)}% (${fmtT(E.hiT)}). Range ${midiToName(E.loM)}–${midiToName(E.hiM)}.</div>`;
+}
+</script>
+<script>
+if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
+  navigator.serviceWorker.register('sw.js').catch(function () {});
 }
 </script>
 </body>
